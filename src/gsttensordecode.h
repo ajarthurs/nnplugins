@@ -84,7 +84,7 @@ struct _GstTensorDecode
   const gchar *labels_path;
   const gchar *box_priors_path;
   gfloat box_priors[BOX_SIZE][DETECTION_MAX];
-  gchar labels[LABEL_SIZE];
+  const gchar *labels[LABEL_SIZE];
   gboolean silent;
 };
 
@@ -106,9 +106,9 @@ typedef struct _DetectedObject
 
 GType gst_tensor_decode_get_type (void);
 gboolean read_lines (const gchar *file_name, GList **lines);
-gboolean tflite_load_labels (const gchar *labels_path, gchar labels[LABEL_SIZE]);
+gboolean tflite_load_labels (const gchar *labels_path, gchar *labels[LABEL_SIZE]);
 gboolean tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE][DETECTION_MAX]);
-gboolean get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], gchar labels[LABEL_SIZE], const gfloat * predictions, const gfloat * boxes, DetectedObject *detected, guint *num_detected);
+gboolean get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], gchar *labels[LABEL_SIZE], const gfloat * predictions, const gfloat * boxes, DetectedObject *detected, guint *num_detected);
 
 G_END_DECLS
 

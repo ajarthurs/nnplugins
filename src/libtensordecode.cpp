@@ -145,13 +145,12 @@ read_lines (const gchar *file_name, GList **lines)
  * @brief Load labels.
  */
 gboolean
-tflite_load_labels (const gchar *labels_path, gchar labels[LABEL_SIZE])
+tflite_load_labels (const gchar *labels_path, gchar *labels[LABEL_SIZE])
 {
   GList *lines = NULL;
   g_return_val_if_fail(read_lines (labels_path, &lines), FALSE);
   for (int i=0; i<LABEL_SIZE; i++) {
-    gchar *label = (gchar *) g_list_nth_data (lines, i);
-    strcpy(&labels[i], label);
+    labels[i] = (gchar *) g_list_nth_data (lines, i);
   }
   return TRUE;
 }
@@ -201,7 +200,7 @@ tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE
  * @brief Get detected objects.
  */
 gboolean
-get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], gchar labels[LABEL_SIZE], const gfloat * predictions, const gfloat * boxes, DetectedObject *detected, guint *num_detected)
+get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], gchar *labels[LABEL_SIZE], const gfloat * predictions, const gfloat * boxes, DetectedObject *detected, guint *num_detected)
 {
   const float threshold_score = 0.5f;
   std::vector<DetectedObject> detected_vec;
@@ -243,7 +242,7 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], gchar labels[L
       DetectedObject object;
 
       object.class_id = c;
-      object.class_label = &labels[c];
+      object.class_label = labels[c];
       object.x = x;
       object.y = y;
       object.width = width;
