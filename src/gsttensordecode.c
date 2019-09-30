@@ -183,10 +183,10 @@ gst_tensor_decode_set_property (GObject * object, guint prop_id,
         GST_ERROR_OBJECT(filter, "Failed to load labels from %s", filter->labels_path);
       else if (!filter->silent) {
         int irow = 0;
-        gchar *row;
+        const gchar *row;
         GST_LOG_OBJECT(filter, "Loaded labels from %s", filter->labels_path);
         do {
-          row = &filter->labels[irow];
+          row = filter->labels[irow];
           GST_LOG_OBJECT(filter, "             label %d:'%s'", irow, row);
           irow++;
         } while(row && irow < LABEL_SIZE);
