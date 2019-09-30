@@ -315,7 +315,7 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
       "confidence", G_TYPE_DOUBLE, d->prob,
       "label_id", G_TYPE_INT, d->class_id,
       "label_name", G_TYPE_STRING, d->class_label,
-      NULL
+      NULL /* terminator: do not remove */
       );
     GstVideoRegionOfInterestMeta *meta = gst_buffer_add_video_region_of_interest_meta(
         buf,
