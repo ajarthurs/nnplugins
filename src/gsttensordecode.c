@@ -310,14 +310,22 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 
   /* attach ROI */
   for(i=0; i<num_detected; i++) {
-    gst_buffer_add_video_region_of_interest_meta(
+    DetectedObject *d = &detected[i];
+    GstStructure *s = gst_structure_new("detection",
+      "confidence", G_TYPE_DOUBLE, d->prob,
+      "label_id", G_TYPE_INT, d->class_id,
+      "label_name", G_TYPE_STRING, d->class_label,
+      NULL
+      );
+    GstVideoRegionOfInterestMeta *meta = gst_buffer_add_video_region_of_interest_meta(
         buf,
-        detected[i].class_label,
-        detected[i].x,
-        detected[i].y,
-        detected[i].width,
-        detected[i].height
+        d->class_label,
+        d->x,
+        d->y,
+        d->width,
+        d->height
         );
+    gst_video_region_of_interest_meta_add_param(meta, s);
   }
   //free(detected);
 
