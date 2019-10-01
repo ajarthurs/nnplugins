@@ -94,29 +94,34 @@ iou (const DetectedObject &A, const DetectedObject &B)
 /**
  * @brief NMS (non-maximum suppression)
  */
-static void
-nms (std::vector<DetectedObject> &detected)
+static std::vector<DetectedObject>
+nms (const std::vector<DetectedObject> &detected)
 {
   const float threshold_iou = 0.5f;
-  guint boxes_size;
-  guint i, j;
+  std::vector<DetectedObject> sorted (detected);
+  guint i, j, num_overlaps = 0;
 
-  std::sort (detected.begin (), detected.end (), compare_objs);
-  boxes_size = detected.size ();
+  std::sort (sorted.begin (), sorted.end (), compare_objs);
 
-  std::vector<bool> del (boxes_size, false);
-  for (i = 0; i < boxes_size; i++) {
+  std::vector<bool> del (detected.size(), false);
+  for (i = 0; i < detected.size(); i++) {
     if (!del[i]) {
-      for (j = i + 1; j < boxes_size; j++) {
-        if (iou (detected.at (i), detected.at (j)) > threshold_iou) {
+      for (j = i + 1; j < detected.size(); j++) {
+        if (iou (sorted.at (i), sorted.at (j)) > threshold_iou) {
           del[j] = true;
+          num_overlaps++;
         }
       }
     }
   }
-  for (i = 0; i < boxes_size; i++) {
-    if (del[i]) detected.erase(detected.begin() + i);
+  std::vector<DetectedObject> filtered(detected.size() - num_overlaps);
+  for(i = 0, j = 0; i < detected.size(); i++) {
+    if (!del[i] && j < filtered.size()) {
+      filtered[j] = sorted[i];
+      j++;
+    }
   }
+  return filtered;
 }
 
 /**
@@ -256,13 +261,13 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     boxes_i += BOX_SIZE;
   }
 
-  nms (detected_vec);
+  std::vector<DetectedObject> filtered_vec = nms (detected_vec);
   //*detected = (DetectedObject *)malloc (detected_vec.size()*sizeof(DetectedObject));
   //if(!(*detected)) {
   //  GST_ERROR("Failed to malloc");
   //  return FALSE;
   //}
-  std::copy(detected_vec.begin(), detected_vec.end(), detected);
-  *num_detected = detected_vec.size();
+  std::copy(filtered_vec.begin(), filtered_vec.end(), detected);
+  *num_detected = filtered_vec.size();
   return TRUE;
 }
