@@ -76,7 +76,7 @@ compare_objs (DetectedObject &a, DetectedObject &b)
  * @brief Intersection of union
  */
 static gfloat
-iou (DetectedObject &A, DetectedObject &B)
+iou (const DetectedObject &A, const DetectedObject &B)
 {
   int x1 = std::max (A.x, B.x);
   int y1 = std::max (A.y, B.y);
