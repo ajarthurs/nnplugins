@@ -286,7 +286,7 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   }
 
   if (!filter->box_priors_path) {
-    GST_ERROR_OBJECT(filter, "Required property 'box-priors' is missing");
+    GST_ERROR_OBJECT(filter, "Required property 'boxpriors' is missing");
     sanity_check = FALSE;
   }
   if (!sanity_check) return GST_FLOW_ERROR;
