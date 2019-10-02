@@ -70,13 +70,59 @@ compare_detection_scores (const void *A, const void *B)
 }
 
 /**
+ * @brief Intersection of union
+ */
+static gfloat
+iou (const DetectedObject *a, const DetectedObject *b)
+{
+  gfloat x1 = fmax ((gfloat)a->x, (gfloat)b->x);
+  gfloat y1 = fmax ((gfloat)a->y, (gfloat)b->y);
+  gfloat x2 = fmin ((gfloat)(a->x + a->width), (gfloat)(b->x + b->width));
+  gfloat y2 = fmin ((gfloat)(a->y + a->height), (gfloat)(b->y + b->height));
+  gfloat w  = fmax (0.0f, (x2 - x1 + 1.0f));
+  gfloat h  = fmax (0.0f, (y2 - y1 + 1.0f));
+  gfloat inter = w * h;
+  gfloat areaA = (gfloat)(a->width * a->height);
+  gfloat areaB = (gfloat)(b->width * b->height);
+  gfloat o = inter / (areaA + areaB - inter);
+  return fmax (0.0f, o);
+}
+
+/**
  * @brief NMS (non-maximum suppression)
  */
-static void
+static guint
 nms (DetectedObject *detections, guint num_detections)
 {
-  guint i, j, num_overlaps = 0;
+  guint i, j, num_overlaps = 0, num_nonoverlaps;
+  gboolean del[DETECTION_MAX * LABEL_SIZE];
   qsort(detections, num_detections, sizeof(DetectedObject), compare_detection_scores);
+  for (i = 0; i < num_detections; i++) {
+    del[i] = FALSE;
+  }
+  for (i = 0; i < num_detections; i++) {
+    if (!del[i]) {
+      for (j = (i + 1); j < num_detections; j++) {
+        if (detections[i].class_id == detections[j].class_id &&
+          iou (&detections[i], &detections[j]) > THRESHOLD_IOU
+          ) {
+          del[j] = TRUE;
+          num_overlaps++;
+        }
+      }
+    }
+  }
+  num_nonoverlaps = num_detections - num_overlaps;
+  for (i = 0; i < num_nonoverlaps; i++) {
+    if (!del[i])
+      continue;
+
+    for(j = (i + 1); j < num_detections; j++) {
+      memcpy(&detections[j-1], &detections[j], sizeof(DetectedObject));
+    }
+    num_detections--;
+  }
+  return num_nonoverlaps;
 }
 
 
@@ -128,7 +174,7 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     predictions += LABEL_SIZE;
     boxes += BOX_SIZE;
   }
-  nms (detections, *num_detections);
+  *num_detections = nms (detections, *num_detections);
 
   //std::vector<DetectedObject> filtered_vec = nms (detected_vec);
   return TRUE;
