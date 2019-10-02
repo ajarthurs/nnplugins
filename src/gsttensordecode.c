@@ -274,8 +274,8 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   GstMapInfo in_info[NNS_TENSOR_SIZE_LIMIT];
   gfloat *predictions;
   gfloat *boxes;
-  DetectedObject detected[DETECTION_MAX];
-  guint num_detected = 0, i;
+  DetectedObject detections[DETECTION_MAX * LABEL_SIZE];
+  guint num_detections = 0, i;
   gboolean sanity_check = TRUE;
 
   filter = GST_TENSORDECODE (parent);
@@ -302,15 +302,15 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
   if (filter->silent == FALSE)
     GST_LOG_OBJECT (filter, "Received buffer");
 
-  sanity_check = get_detected_objects (filter->box_priors, filter->labels, predictions, boxes, detected, &num_detected);
+  sanity_check = get_detected_objects (filter->box_priors, filter->labels, predictions, boxes, detections, &num_detections);
   for (i=0; i<2; i++) {
     gst_memory_unmap (in_mem[i], &in_info[i]);
   }
   if(!sanity_check) return GST_FLOW_ERROR;
 
   /* attach ROI */
-  for(i=0; i<num_detected; i++) {
-    DetectedObject *d = &detected[i];
+  for(i=0; i<num_detections; i++) {
+    DetectedObject *d = &detections[i];
     GstStructure *s = gst_structure_new("detection",
       "confidence", G_TYPE_DOUBLE, d->prob,
       "label_id", G_TYPE_INT, d->class_id,
