@@ -103,7 +103,8 @@ nms (DetectedObject *detections, guint num_detections)
   for (i = 0; i < num_detections; i++) {
     if (!del[i]) {
       for (j = (i + 1); j < num_detections; j++) {
-        if (detections[i].class_id == detections[j].class_id &&
+        if (!del[j] &&
+          detections[i].class_id == detections[j].class_id &&
           iou (&detections[i], &detections[j]) > THRESHOLD_IOU
           ) {
           del[j] = TRUE;
