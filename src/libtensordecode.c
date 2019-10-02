@@ -55,6 +55,32 @@
 #include "gsttensordecode.h"
 
 /**
+ * @brief Compare score of detected objects in descending order.
+ */
+static gint
+compare_detection_scores (const void *A, const void *B)
+{
+  const DetectedObject *a = (DetectedObject *)A, *b = (DetectedObject *)B;
+  if (a->score > b->score)
+    return -1;
+  else if(a->score < b->score)
+    return 1;
+  else
+    return 0;
+}
+
+/**
+ * @brief NMS (non-maximum suppression)
+ */
+static void
+nms (DetectedObject *detections, guint num_detections)
+{
+  guint i, j, num_overlaps = 0;
+  qsort(detections, num_detections, sizeof(DetectedObject), compare_detection_scores);
+}
+
+
+/**
  * @brief Get detected objects.
  */
 gboolean
@@ -102,6 +128,7 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     predictions += LABEL_SIZE;
     boxes += BOX_SIZE;
   }
+  nms (detections, *num_detections);
 
   //std::vector<DetectedObject> filtered_vec = nms (detected_vec);
   return TRUE;
