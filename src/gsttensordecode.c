@@ -313,7 +313,7 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
     DetectedObject *d = &detections[i];
     GstStructure *s = gst_structure_new("detection",
       "confidence", G_TYPE_DOUBLE, d->score,
-      "label_id", G_TYPE_INT, d->class_id,
+      "label_id", G_TYPE_UINT, d->class_id,
       "label_name", G_TYPE_STRING, d->class_label,
       NULL /* terminator: do not remove */
       );
