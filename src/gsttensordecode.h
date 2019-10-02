@@ -102,7 +102,7 @@ typedef struct _DetectedObject
   gint height;
   gint class_id;
   const gchar *class_label;
-  gfloat prob;
+  gfloat score;
 } DetectedObject;
 
 GType gst_tensor_decode_get_type (void);

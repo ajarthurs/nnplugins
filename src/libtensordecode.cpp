@@ -66,7 +66,7 @@
 static bool
 compare_objs (DetectedObject &a, DetectedObject &b)
 {
-  return a.prob > b.prob;
+  return a.score > b.score;
 }
 
 /**
@@ -249,7 +249,7 @@ DEL_get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gcha
       object.y = y;
       object.width = width;
       object.height = height;
-      object.prob = score;
+      object.score = score;
 
       detected_vec.push_back (object);
     }

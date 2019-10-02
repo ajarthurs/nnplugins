@@ -95,7 +95,7 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
       detections[*num_detections].y = y;
       detections[*num_detections].width = width;
       detections[*num_detections].height = height;
-      detections[*num_detections].prob = score;
+      detections[*num_detections].score = score;
       (*num_detections)++;
     }
 
