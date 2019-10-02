@@ -327,7 +327,6 @@ gst_tensor_decode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
         );
     gst_video_region_of_interest_meta_add_param(meta, s);
   }
-  //free(detected);
 
   /* just push out the incoming buffer without touching it */
   return gst_pad_push (filter->srcpad, buf);
