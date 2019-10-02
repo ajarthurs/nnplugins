@@ -31,6 +31,7 @@ configure_file(output : 'config.h', configuration : cdata)
 # Plugin 1
 plugin_sources = [
   'src/gsttensordecode.c',
+  'src/libtensordecode.c',
   'src/libtensordecode.cpp'
   ]
 

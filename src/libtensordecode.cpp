@@ -60,9 +60,6 @@
 
 #include "gsttensordecode.h"
 
-#define _expit(x) \
-    (1.f / (1.f + expf (-x)))
-
 /**
  * @brief Compare score of detected objects.
  */
@@ -205,7 +202,7 @@ tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE
  * @brief Get detected objects.
  */
 gboolean
-get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat * predictions, const gfloat * boxes, DetectedObject *detected, guint *num_detected)
+DEL_get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat * predictions, const gfloat * boxes, DetectedObject *detected, guint *num_detected)
 {
   const float threshold_score = 0.5f;
   std::vector<DetectedObject> detected_vec;
@@ -234,7 +231,7 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     int height = (ymax - ymin) * MODEL_HEIGHT;
 
     for (int c = 1; c < LABEL_SIZE; c++) {
-      gfloat score = _expit (predictions_i[c]);
+      gfloat score = EXPIT (predictions_i[c]);
       /**
        * This score cutoff is taken from Tensorflow's demo app.
        * There are quite a lot of nodes to be run to convert it to the useful possibility
