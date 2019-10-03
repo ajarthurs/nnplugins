@@ -101,15 +101,16 @@ nms (DetectedObject *detections, guint num_detections)
     del[i] = FALSE;
   }
   for (i = 0; i < num_detections; i++) {
-    if (!del[i]) {
-      for (j = (i + 1); j < num_detections; j++) {
-        if (!del[j] &&
-          detections[i].class_id == detections[j].class_id &&
-          iou (&detections[i], &detections[j]) > THRESHOLD_IOU
-          ) {
-          del[j] = TRUE;
-          num_overlaps++;
-        }
+    if (del[i])
+      continue;
+
+    for (j = (i + 1); j < num_detections; j++) {
+      if (!del[j] &&
+        detections[i].class_id == detections[j].class_id &&
+        iou (&detections[i], &detections[j]) > THRESHOLD_IOU
+        ) {
+        del[j] = TRUE;
+        num_overlaps++;
       }
     }
   }
@@ -176,7 +177,5 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     boxes += BOX_SIZE;
   }
   *num_detections = nms (detections, *num_detections);
-
-  //std::vector<DetectedObject> filtered_vec = nms (detected_vec);
   return TRUE;
 }
