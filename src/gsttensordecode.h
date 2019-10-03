@@ -74,7 +74,7 @@ typedef struct _GstTensorDecodeClass GstTensorDecodeClass;
 #define BOX_SIZE        4
 #define LABEL_SIZE      91
 #define THRESHOLD_SCORE 0.5f
-#define THRESHOLD_IOU   0.5f
+#define THRESHOLD_IOU   0.0f
 #define EXPIT(x) (1.f / (1.f + expf (-x)))
 struct _GstTensorDecode
 {
