@@ -94,7 +94,7 @@ iou (const DetectedObject *a, const DetectedObject *b)
 static guint
 nms (DetectedObject *detections, guint num_detections)
 {
-  guint i, j, num_overlaps = 0, num_nonoverlaps;
+  guint i, j, k, num_overlaps = 0, num_nonoverlaps;
   gboolean del[DETECTION_MAX * LABEL_SIZE];
   qsort(detections, num_detections, sizeof(DetectedObject), compare_detection_scores);
   for (i = 0; i < num_detections; i++) {
@@ -119,10 +119,15 @@ nms (DetectedObject *detections, guint num_detections)
     if (!del[i])
       continue;
 
-    for(j = (i + 1); j < num_detections; j++) {
-      memcpy(&detections[j-1], &detections[j], sizeof(DetectedObject));
+    j = i;
+    while(del[i] && j < (num_detections-1)) {
+      for(k = i; k < (num_detections-1); k++) {
+        del[k] = del[k+1];
+        memcpy(&detections[k], &detections[k+1], sizeof(DetectedObject));
+      }
+      j++;
     }
-    num_detections--;
+    num_detections -= (j-i);
   }
   return num_nonoverlaps;
 }
