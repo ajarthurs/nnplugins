@@ -77,8 +77,8 @@ iou (const DetectedObject *a, const DetectedObject *b)
 {
   gfloat x1 = fmax ((gfloat)a->x, (gfloat)b->x);
   gfloat y1 = fmax ((gfloat)a->y, (gfloat)b->y);
-  gfloat x2 = fmin ((gfloat)(a->x + a->width), (gfloat)(b->x + b->width));
-  gfloat y2 = fmin ((gfloat)(a->y + a->height), (gfloat)(b->y + b->height));
+  gfloat x2 = fmin ((gfloat)(a->x + a->width - 1.0f), (gfloat)(b->x + b->width - 1.0f));
+  gfloat y2 = fmin ((gfloat)(a->y + a->height - 1.0f), (gfloat)(b->y + b->height - 1.0f));
   gfloat w  = fmax (0.0f, (x2 - x1 + 1.0f));
   gfloat h  = fmax (0.0f, (y2 - y1 + 1.0f));
   gfloat inter = w * h;
