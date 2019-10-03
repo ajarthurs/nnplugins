@@ -146,8 +146,8 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     gfloat ymax = ycenter + h / 2.f;
     gfloat xmax = xcenter + w / 2.f;
 
-    guint x = xmin * MODEL_WIDTH;
-    guint y = ymin * MODEL_HEIGHT;
+    gint x = xmin * MODEL_WIDTH;
+    gint y = ymin * MODEL_HEIGHT;
     guint width = (xmax - xmin) * MODEL_WIDTH;
     guint height = (ymax - ymin) * MODEL_HEIGHT;
 
