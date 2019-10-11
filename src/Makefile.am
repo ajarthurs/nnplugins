@@ -3,8 +3,6 @@
 ##############################################################################
 plugin_LTLIBRARIES = libgsttensordecode.la
 
-## Plugin 1
-
 # sources used to compile this plug-in
 libgsttensordecode_la_SOURCES = gsttensordecode.c gsttensordecode.h
 

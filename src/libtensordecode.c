@@ -137,7 +137,7 @@ nms (DetectedObject *detections, guint num_detections)
  * @brief Get detected objects.
  */
 gboolean
-get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, DetectedObject *detections, guint *num_detections)
+get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, const GstVideoMeta *vmeta, DetectedObject *detections, guint *num_detections)
 {
   *num_detections = 0;
   guint d, l;
@@ -152,10 +152,12 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     gfloat ymax = ycenter + h / 2.f;
     gfloat xmax = xcenter + w / 2.f;
 
-    gint x = xmin * MODEL_WIDTH;
-    gint y = ymin * MODEL_HEIGHT;
-    guint width = (xmax - xmin) * MODEL_WIDTH;
-    guint height = (ymax - ymin) * MODEL_HEIGHT;
+    gint vwidth = (vmeta)? vmeta->width : MODEL_WIDTH;
+    gint vheight = (vmeta)? vmeta->height : MODEL_HEIGHT;
+    gint x = xmin * vwidth;
+    gint y = ymin * vheight;
+    guint width = (xmax - xmin) * vwidth;
+    guint height = (ymax - ymin) * vheight;
 
     for (l = 1; l < LABEL_SIZE; l++) {
       gfloat score = EXPIT (predictions[l]);

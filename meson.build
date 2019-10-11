@@ -28,7 +28,7 @@ cdata.set_quoted('GST_PACKAGE_NAME', 'GStreamer Neural Network Plug-ins')
 cdata.set_quoted('GST_PACKAGE_ORIGIN', 'https://gstreamer.freedesktop.org')
 configure_file(output : 'config.h', configuration : cdata)
 
-# Plugin 1
+# Plugin tensordecode
 plugin_sources = [
   'src/gsttensordecode.c',
   'src/libtensordecode.c',

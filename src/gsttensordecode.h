@@ -47,6 +47,8 @@
 #define __GST_TENSORDECODE_H__
 
 #include <gst/gst.h>
+#include <gst/base/gstcollectpads.h>
+#include <gst/video/gstvideometa.h>
 
 G_BEGIN_DECLS
 
@@ -64,6 +66,7 @@ G_BEGIN_DECLS
 typedef struct _GstTensorDecode      GstTensorDecode;
 typedef struct _GstTensorDecodeClass GstTensorDecodeClass;
 
+/* FIXME: Consider making these properties with default values */
 #define Y_SCALE         10.0f
 #define X_SCALE         10.0f
 #define H_SCALE         5.0f
@@ -80,13 +83,17 @@ struct _GstTensorDecode
 {
   GstElement element;
 
-  GstPad *sinkpad, *srcpad;
+  GstPad *tensor_sinkpad, *tensor_srcpad;
+  GstPad *video_sinkpad, *video_srcpad;
+  GstCollectPads *collect;
 
   const gchar *labels_path;
   const gchar *box_priors_path;
   gfloat box_priors[BOX_SIZE][DETECTION_MAX];
   const gchar *labels[LABEL_SIZE];
   gboolean silent;
+
+  gboolean need_start_events;
 };
 
 struct _GstTensorDecodeClass
@@ -109,7 +116,7 @@ GType gst_tensor_decode_get_type (void);
 gboolean read_lines (const gchar *file_name, GList **lines);
 gboolean tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE]);
 gboolean tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE][DETECTION_MAX]);
-gboolean get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, DetectedObject *detections, guint *num_detections);
+gboolean get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, const GstVideoMeta *vmeta, DetectedObject *detections, guint *num_detections);
 
 G_END_DECLS
 
