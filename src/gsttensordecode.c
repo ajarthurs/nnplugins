@@ -417,18 +417,21 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
   }
   if (!sanity_check) return GST_FLOW_ERROR;
   /*FIXME: Hard-coding some assumptions about the tensors from the model (tensor_filter) */
+  /* Map boxes and predictions tensors from model */
   for (i=0; i<2; i++) {
     in_mem[i] = gst_buffer_peek_memory (tbuf, i);
     g_assert (gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ));
   }
   boxes = (gfloat *)in_info[0].data;
   predictions = (gfloat *)in_info[1].data;
+  /* Process boxes and predictions into an array of DetectedObjects */
   sanity_check = get_detected_objects (filter->box_priors, filter->labels, predictions, boxes, vmeta, detections, &num_detections);
+  /* Teardown tensor mapping */
   for (i=0; i<2; i++) {
     gst_memory_unmap (in_mem[i], &in_info[i]);
   }
   if(!sanity_check) return GST_FLOW_ERROR;
-  /* attach ROI */
+  /* Attach ROIs to the tensor buffer */
   for(i=0; i<num_detections; i++) {
     DetectedObject *d = &detections[i];
     GstStructure *s = gst_structure_new("detection",
@@ -447,7 +450,7 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
         );
     gst_video_region_of_interest_meta_add_param(meta, s);
   }
-  /* push tensor buffer to tensor srcpad */
+  /* Push tensor buffer to tensor srcpad */
   return gst_pad_push (filter->tensor_srcpad, tbuf);
 }
 
