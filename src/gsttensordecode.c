@@ -394,6 +394,7 @@ static GstFlowReturn
 gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *vbuf)
 {
   GstVideoMeta *vmeta;
+  GstBuffer *outbuf;
   gboolean sanity_check = TRUE;
   GstMemory *in_mem[NNS_TENSOR_SIZE_LIMIT];
   GstMapInfo in_info[NNS_TENSOR_SIZE_LIMIT];
@@ -430,6 +431,12 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
   for (i=0; i<2; i++) {
     gst_memory_unmap (in_mem[i], &in_info[i]);
   }
+  /* Request write-access to tensor buffer to add ROIs, which will be pushed out the tensor srcpad */
+  outbuf = gst_buffer_make_writable(tbuf);
+  if (!gst_buffer_is_writable(outbuf)) {
+    GST_ERROR_OBJECT (filter, "Failed to gain write-access to tensor buffer: %" GST_PTR_FORMAT, outbuf);
+    sanity_check = FALSE;
+  }
   if(!sanity_check) return GST_FLOW_ERROR;
   /* Attach ROIs to the tensor buffer */
   for(i=0; i<num_detections; i++) {
@@ -441,7 +448,7 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
       NULL /* terminator: do not remove */
       );
     GstVideoRegionOfInterestMeta *meta = gst_buffer_add_video_region_of_interest_meta(
-        tbuf,
+        outbuf,
         d->class_label,
         d->x,
         d->y,
@@ -451,7 +458,7 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
     gst_video_region_of_interest_meta_add_param(meta, s);
   }
   /* Push tensor buffer to tensor srcpad */
-  return gst_pad_push (filter->tensor_srcpad, tbuf);
+  return gst_pad_push (filter->tensor_srcpad, outbuf);
 }
 
 /* entry point to initialize the plug-in
