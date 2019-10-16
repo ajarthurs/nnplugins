@@ -125,7 +125,7 @@ nms (const std::vector<DetectedObject> &detected)
  * @brief Read strings from file.
  */
 gboolean
-read_lines (const gchar *file_name, GList **lines)
+DEL_read_lines (const gchar *file_name, GList **lines)
 {
   GST_DEBUG("HELLO read_lines: %s", file_name);
   std::ifstream file (file_name);

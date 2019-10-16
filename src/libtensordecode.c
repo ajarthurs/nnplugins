@@ -51,6 +51,8 @@
  */
 
 #include <math.h>
+#include <stdlib.h>
+#include <stdio.h>
 #include <gst/gst.h>
 #include "gsttensordecode.h"
 
@@ -184,5 +186,29 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     boxes += BOX_SIZE;
   }
   *num_detections = nms (detections, *num_detections);
+  return TRUE;
+}
+
+/**
+ * @brief Read strings from file.
+ */
+gboolean
+read_lines (const gchar *file_name, GList **lines)
+{
+  FILE *stream = fopen(file_name, "r");
+  gchar *line = NULL;
+  size_t len = 0;
+  ssize_t nread;
+  if (stream == NULL) {
+    GST_ERROR ("Failed to open file %s", file_name);
+    return FALSE;
+  }
+  while ((nread = getline (&line, &len, stream)) != -1) {
+    line[nread-1] = '\0'; /* remove extraneous newline character */
+    *lines = g_list_append (*lines, g_strdup (line));
+  }
+  free (line);
+  fclose(stream);
+
   return TRUE;
 }
