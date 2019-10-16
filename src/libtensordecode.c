@@ -227,3 +227,45 @@ tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE])
   }
   return TRUE;
 }
+
+/**
+ * @brief Load box priors.
+ */
+gboolean
+tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE][DETECTION_MAX])
+{
+  guint row;
+  gchar *box_row;
+  GList *box_priors_lines = NULL;
+
+  GST_DEBUG("HELLO");
+  g_return_val_if_fail (read_lines (box_priors_path, &box_priors_lines), FALSE);
+  GST_DEBUG("HELLO AGAIN");
+
+  for (row = 0; row < BOX_SIZE; row++) {
+    guint column = 0;
+    guint i = 0, j = 0;
+    gchar buff[11];
+
+    memset (buff, 0, 11);
+    box_row = (gchar *) g_list_nth_data (box_priors_lines, row);
+
+    while ((box_row[i] != '\n') && (box_row[i] != '\0')) {
+      if (box_row[i] != ' ') {
+        buff[j] = box_row[i];
+        j++;
+      } else {
+        if (j != 0) {
+          box_priors[row][column++] = atof (buff);
+          memset (buff, 0, 11);
+        }
+        j = 0;
+      }
+      i++;
+    }
+
+    box_priors[row][column++] = atof (buff);
+  }
+  g_list_free_full (box_priors_lines, g_free);
+  return TRUE;
+}

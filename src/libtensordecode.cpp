@@ -161,7 +161,7 @@ DEL_tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE
  * @brief Load box priors.
  */
 gboolean
-tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE][DETECTION_MAX])
+DEL_tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE][DETECTION_MAX])
 {
   gchar *box_row;
   GList *box_priors_lines = NULL;
