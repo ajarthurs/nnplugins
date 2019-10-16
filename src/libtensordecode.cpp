@@ -147,7 +147,7 @@ DEL_read_lines (const gchar *file_name, GList **lines)
  * @brief Load labels.
  */
 gboolean
-tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE])
+DEL_tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE])
 {
   GList *lines = NULL;
   g_return_val_if_fail(read_lines (labels_path, &lines), FALSE);

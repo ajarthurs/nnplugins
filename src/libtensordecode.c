@@ -212,3 +212,18 @@ read_lines (const gchar *file_name, GList **lines)
 
   return TRUE;
 }
+
+/**
+ * @brief Load labels.
+ */
+gboolean
+tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE])
+{
+  guint i;
+  GList *lines = NULL;
+  g_return_val_if_fail(read_lines (labels_path, &lines), FALSE);
+  for (i = 0; i < LABEL_SIZE; i++) {
+    labels[i] = (gchar *) g_list_nth_data (lines, i);
+  }
+  return TRUE;
+}
