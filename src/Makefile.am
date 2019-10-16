@@ -4,7 +4,7 @@
 plugin_LTLIBRARIES = libgsttensordecode.la
 
 # sources used to compile this plug-in
-libgsttensordecode_la_SOURCES = gsttensordecode.c gsttensordecode.h
+libgsttensordecode_la_SOURCES = gsttensordecode.c libtensordecode.c gsttensordecode.h
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
 libgsttensordecode_la_CFLAGS = $(GST_CFLAGS)
