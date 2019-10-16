@@ -1,10 +1,9 @@
-project('nnplugins', 'c', 'cpp',
+project('nnplugins', 'c',
   version : '0.1.0',
   meson_version : '>= 0.42.0',
   default_options : [
     'warning_level=1',
     'c_std=gnu89',
-    'cpp_std=c++11',
     'buildtype=debugoptimized'
   ]
 )
@@ -16,6 +15,9 @@ gst_video_dep = dependency('gstreamer-video-' + gst_api_version)
 plugins_install_dir = join_paths(get_option('libdir'), 'gstreamer-1.0')
 
 nnstreamer_dep = dependency('nnstreamer')
+
+cc = meson.get_compiler('c')
+libm = cc.find_library('m', required : true)
 
 plugin_c_args = ['-DHAVE_CONFIG_H']
 
@@ -32,13 +34,12 @@ configure_file(output : 'config.h', configuration : cdata)
 plugin_sources = [
   'src/gsttensordecode.c',
   'src/libtensordecode.c',
-  'src/libtensordecode.cpp'
   ]
 
 gsttensordecode = library('gsttensordecode',
   plugin_sources,
   c_args: plugin_c_args,
-  dependencies : [gst_dep, gst_video_dep, nnstreamer_dep],
+  dependencies : [gst_dep, gst_video_dep, nnstreamer_dep, libm],
   install : true,
   install_dir : plugins_install_dir,
 )
