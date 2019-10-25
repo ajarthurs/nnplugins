@@ -71,8 +71,6 @@ typedef struct _GstTensorDecodeClass GstTensorDecodeClass;
 #define X_SCALE         10.0f
 #define H_SCALE         5.0f
 #define W_SCALE         5.0f
-#define MODEL_WIDTH     300
-#define MODEL_HEIGHT    300
 #define DETECTION_MAX   1917
 #define BOX_SIZE        4
 #define LABEL_SIZE      91

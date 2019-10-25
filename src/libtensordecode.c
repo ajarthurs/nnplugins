@@ -57,7 +57,7 @@
 #include "gsttensordecode.h"
 
 /**
- * @brief Compare score of detected objects in descending order.
+ * @brief `qsort` callback: Compare score of detected objects in descending order.
  */
 static gint
 compare_detection_scores (const void *A, const void *B)
