@@ -101,8 +101,8 @@ struct _GstTensorDecodeClass
 
 typedef struct _DetectedObject
 {
-  gint  x;
-  gint  y;
+  guint x;
+  guint y;
   guint width;
   guint height;
   guint class_id;

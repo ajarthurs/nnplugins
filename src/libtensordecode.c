@@ -50,6 +50,7 @@
  *
  */
 
+#include <limits.h>
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -77,17 +78,23 @@ compare_detection_scores (const void *A, const void *B)
 static gfloat
 iou (const DetectedObject *a, const DetectedObject *b)
 {
-  gfloat x1 = fmax ((gfloat)a->x, (gfloat)b->x);
-  gfloat y1 = fmax ((gfloat)a->y, (gfloat)b->y);
-  gfloat x2 = fmin ((gfloat)(a->x + a->width - 1.0f), (gfloat)(b->x + b->width - 1.0f));
-  gfloat y2 = fmin ((gfloat)(a->y + a->height - 1.0f), (gfloat)(b->y + b->height - 1.0f));
-  gfloat w  = fmax (0.0f, (x2 - x1 + 1.0f));
-  gfloat h  = fmax (0.0f, (y2 - y1 + 1.0f));
+  guint x1 = (a->x > b->x)? a->x : b->x;
+  guint y1 = (a->y > b->y)? a->y : b->y;
+  guint ax2 = a->x + a->width;
+  guint bx2 = b->x + b->width;
+  guint ay2 = a->y + a->height;
+  guint by2 = b->y + b->height;
+  guint x2 = (ax2 < bx2)? ax2 : bx2;
+  guint y2 = (ay2 < by2)? ay2 : by2;
+  gfloat w  = (gfloat)x2 - x1;
+  gfloat h  = (gfloat)y2 - y1;
   gfloat inter = w * h;
-  gfloat areaA = (gfloat)(a->width * a->height);
-  gfloat areaB = (gfloat)(b->width * b->height);
+  gfloat areaA = (gfloat)a->width * a->height;
+  gfloat areaB = (gfloat)b->width * b->height;
   gfloat o = inter / (areaA + areaB - inter);
-  return fmax (0.0f, o);
+  gfloat iou = fmax (0.0f, o);
+  GST_DEBUG("IOU = %e; o = %e; %e x %e", iou, o, w, h);
+  return iou;
 }
 
 /**
