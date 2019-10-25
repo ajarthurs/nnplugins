@@ -87,7 +87,7 @@ enum
  *
  * describe the real formats here.
  */
-static GstStaticPadTemplate tensor_sink_factory = GST_STATIC_PAD_TEMPLATE ("tensor_sink",
+static GstStaticPadTemplate tensor_sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
     GST_STATIC_CAPS (TENSOR_CAPS_STRING)
@@ -99,31 +99,13 @@ static GstStaticPadTemplate tensor_src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_STATIC_CAPS (TENSOR_CAPS_STRING)
     );
 
-static GstStaticPadTemplate video_sink_factory = GST_STATIC_PAD_TEMPLATE ("video_sink",
-    GST_PAD_SINK,
-    GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (VIDEO_CAPS_STRING)
-    );
-
-//static GstStaticPadTemplate video_src_factory = GST_STATIC_PAD_TEMPLATE ("video_src",
-//    GST_PAD_SRC,
-//    GST_PAD_ALWAYS,
-//    GST_STATIC_CAPS (VIDEO_CAPS_STRING)
-//    );
-
 #define gst_tensor_decode_parent_class parent_class
 G_DEFINE_TYPE (GstTensorDecode, gst_tensor_decode, GST_TYPE_ELEMENT);
 
-static void gst_tensor_decode_pad_destroy_notify (GstCollectData * data);
-static void gst_tensor_decode_clear (GstTensorDecode *filter);
-static GstStateChangeReturn gst_tensor_decode_change_state (GstElement * element, GstStateChange transition);
-static void gst_tensor_decode_set_property (GObject * object, guint prop_id,
-    const GValue * value, GParamSpec * pspec);
-static void gst_tensor_decode_get_property (GObject * object, guint prop_id,
-    GValue * value, GParamSpec * pspec);
-static GstFlowReturn gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *vbuf);
-static GstFlowReturn gst_tensor_decode_collected (GstCollectPads * pads, GstTensorDecode * filter);
-static void gst_tensor_decode_send_start_events (GstTensorDecode * filter, GstCollectPads * pads);
+static void gst_tensor_decode_set_property (GObject * object, guint prop_id, const GValue * value, GParamSpec * pspec);
+static void gst_tensor_decode_get_property (GObject * object, guint prop_id, GValue * value, GParamSpec * pspec);
+static GstFlowReturn gst_tensor_decode_chain (GstPad *pad, GstObject *parent, GstBuffer *buf);
+static GstFlowReturn gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf);
 
 /* GObject vmethod implementations */
 
@@ -160,10 +142,6 @@ gst_tensor_decode_class_init (GstTensorDecodeClass * klass)
 
   gst_element_class_add_pad_template (gstelement_class, gst_static_pad_template_get (&tensor_sink_factory));
   gst_element_class_add_pad_template (gstelement_class, gst_static_pad_template_get (&tensor_src_factory));
-  gst_element_class_add_pad_template (gstelement_class, gst_static_pad_template_get (&video_sink_factory));
-  //gst_element_class_add_pad_template (gstelement_class, gst_static_pad_template_get (&video_src_factory));
-
-  gstelement_class->change_state = gst_tensor_decode_change_state;
 }
 
 /* initialize the new element
@@ -181,78 +159,7 @@ gst_tensor_decode_init (GstTensorDecode * filter)
   filter->tensor_srcpad = gst_pad_new_from_static_template (&tensor_src_factory, "src");
   gst_element_add_pad (GST_ELEMENT (filter), filter->tensor_srcpad);
 
-  /* video pads */
-  filter->video_sinkpad = gst_pad_new_from_static_template (&video_sink_factory, "video_sink");
-  gst_element_add_pad (GST_ELEMENT (filter), filter->video_sinkpad);
-
-  //filter->video_srcpad = gst_pad_new_from_static_template (&video_src_factory, "video_src");
-  //GST_PAD_SET_PROXY_CAPS (filter->video_srcpad);
-  //gst_element_add_pad (GST_ELEMENT (filter), filter->video_srcpad);
-
-  /* sink pads collection */
-  filter->collect = gst_collect_pads_new ();
-  gst_collect_pads_set_function (filter->collect,
-    (GstCollectPadsFunction) GST_DEBUG_FUNCPTR (gst_tensor_decode_collected),
-    filter);
-  gst_collect_pads_add_pad (filter->collect, filter->tensor_sinkpad,
-    sizeof (GstCollectData), gst_tensor_decode_pad_destroy_notify, TRUE);
-  gst_collect_pads_add_pad (filter->collect, filter->video_sinkpad,
-    sizeof (GstCollectData), gst_tensor_decode_pad_destroy_notify, TRUE);
-
-  gst_tensor_decode_clear (filter);
-}
-
-static void
-gst_tensor_decode_pad_destroy_notify (GstCollectData * data)
-{
-}
-
-static void
-gst_tensor_decode_clear (GstTensorDecode *filter)
-{
-  filter->need_start_events = TRUE;
-}
-
-static GstStateChangeReturn
-gst_tensor_decode_change_state (GstElement * element, GstStateChange transition)
-{
-  GstTensorDecode *filter;
-  GstStateChangeReturn ret;
-
-  filter = GST_TENSORDECODE (element);
-
-  switch (transition) {
-    case GST_STATE_CHANGE_NULL_TO_READY:
-      break;
-    case GST_STATE_CHANGE_READY_TO_PAUSED:
-      gst_tensor_decode_clear (filter);
-      //gst_ogg_mux_init_collectpads (ogg_mux->collect);
-      gst_collect_pads_start (filter->collect);
-      break;
-    case GST_STATE_CHANGE_PAUSED_TO_PLAYING:
-      break;
-    case GST_STATE_CHANGE_PAUSED_TO_READY:
-      gst_collect_pads_stop (filter->collect);
-      break;
-    default:
-      break;
-  }
-
-  ret = GST_ELEMENT_CLASS (parent_class)->change_state (element, transition);
-
-  //switch (transition) {
-  //  case GST_STATE_CHANGE_PLAYING_TO_PAUSED:
-  //    break;
-  //  case GST_STATE_CHANGE_PAUSED_TO_READY:
-  //    gst_ogg_mux_clear_collectpads (ogg_mux->collect);
-  //    break;
-  //  case GST_STATE_CHANGE_READY_TO_NULL:
-  //    break;
-  //  default:
-  //    break;
-  //}
-
-  return ret;
+  gst_pad_set_chain_function (filter->tensor_sinkpad, GST_DEBUG_FUNCPTR(gst_tensor_decode_chain));
 }
 
 static void
@@ -317,83 +224,25 @@ gst_tensor_decode_get_property (GObject * object, guint prop_id,
 
 /* GstElement vmethod implementations */
 
-/* collect function
- * this function manages data across all sink pads (tensor and video).
- */
-static GstFlowReturn
-gst_tensor_decode_collected (GstCollectPads * pads, GstTensorDecode * filter)
-{
-  GSList *walk;
-  GstBuffer *tbuf = NULL, *vbuf = NULL;
-  GstFlowReturn ret;
-  GST_DEBUG_OBJECT (filter, "collected");
-  if (filter->need_start_events) {
-    /* FIXME (maybe): Investigate stream initialization and headers */
-    GstSegment segment;
-    gst_tensor_decode_send_start_events (filter, pads);
-    gst_segment_init (&segment, GST_FORMAT_TIME);
-    gst_pad_push_event (filter->tensor_srcpad, gst_event_new_segment (&segment));
-    filter->need_start_events = FALSE;
-  }
-  /* step through the sinkpads to collect their buffers (should just be video and tensor) */
-  walk = filter->collect->data;
-  while (walk) {
-    GstCollectData *data = walk->data;
-    GstBuffer *buf;
-    buf = gst_collect_pads_pop (pads, walk->data);
-    if (buf) {
-      GST_DEBUG_OBJECT (data->pad, "looking at this pad");
-      if (data->pad == filter->video_sinkpad) {
-        GST_DEBUG_OBJECT (filter, "it's the video sinkpad");
-        vbuf = buf;
-      } else if (data->pad == filter->tensor_sinkpad) {
-        GST_DEBUG_OBJECT (filter, "it's the tensor sinkpad");
-        tbuf = buf;
-      } else {
-        GST_ERROR_OBJECT (filter, "unknown what the sinkpad is");
-        return GST_FLOW_ERROR;
-      }
-      GST_DEBUG_OBJECT (filter, "got buffer %" GST_PTR_FORMAT, buf);
-    } else { // EOS
-      GST_DEBUG_OBJECT (filter, "no data available, must be EOS");
-      gst_pad_push_event (filter->tensor_srcpad, gst_event_new_eos ());
-      return GST_FLOW_EOS;
-    }
-    walk = g_slist_next (walk);
-  }
-  if (!tbuf || !vbuf) {
-    GST_ERROR_OBJECT (filter, "missing tensor and video buffers: tensor buf = %" GST_PTR_FORMAT " video buf = %" GST_PTR_FORMAT,
-      tbuf, vbuf);
-    return GST_FLOW_ERROR;
-  }
-  /* process the tensor and video buffers */
-  ret = gst_tensor_decode_process(filter, tbuf, vbuf);
-  /* free the tensor and video buffers */
-  //gst_buffer_unref (tbuf); // FIXME (maybe): Cannot free tensor-buffer because it's been pushed into the tensor sourcepad.
-  gst_buffer_unref (vbuf);
-  return ret;
-}
-
-static void
-gst_tensor_decode_send_start_events (GstTensorDecode * filter, GstCollectPads * pads)
-{
-  gchar s_id[32];
-
-  /* stream-start (FIXME: create id based on input ids) and
-   * also do something with the group id */
-  g_snprintf (s_id, sizeof (s_id), "tensordecode-%08x", g_random_int ());
-  gst_pad_push_event (filter->tensor_srcpad, gst_event_new_stream_start (s_id));
-
-  /* we'll send caps later, need to collect all headers first */
-}
 
 /*
- * this function decodes and scales objects given the tensor and video buffers
+ * this function is called when a buffer is pushed into the sink-pad
  */
 static GstFlowReturn
-gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *vbuf)
+gst_tensor_decode_chain (GstPad *pad, GstObject *parent, GstBuffer *buf)
 {
-  GstVideoMeta *vmeta;
+  GstTensorDecode *filter;
+  filter = GST_TENSORDECODE (parent);
+  return gst_tensor_decode_process (filter, buf);
+}
+
+
+/*
+ * this function decodes and scales objects given the tensor
+ */
+static GstFlowReturn
+gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf)
+{
   GstBuffer *outbuf;
   gboolean sanity_check = TRUE;
   GstMemory *in_mem[NNS_TENSOR_SIZE_LIMIT];
@@ -402,12 +251,6 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
   gfloat *boxes;
   DetectedObject detections[DETECTION_MAX * LABEL_SIZE];
   guint num_detections = 0, i;
-  vmeta = gst_buffer_get_video_meta(vbuf);
-  if(!vmeta) {
-    GST_ERROR_OBJECT(filter, "Failed to fetch video meta");
-    sanity_check = FALSE;
-  }
-  GST_DEBUG_OBJECT(filter, "Video width x height = %d x %d", vmeta->width, vmeta->height);
   if (!filter->labels_path) {
     GST_ERROR_OBJECT(filter, "Required property 'labels' is missing");
     sanity_check = FALSE;
@@ -426,7 +269,7 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf, GstBuffer *
   boxes = (gfloat *)in_info[0].data;
   predictions = (gfloat *)in_info[1].data;
   /* Process boxes and predictions into an array of DetectedObjects */
-  sanity_check = get_detected_objects (filter->box_priors, filter->labels, predictions, boxes, vmeta, detections, &num_detections);
+  sanity_check = get_detected_objects (filter->box_priors, filter->labels, predictions, boxes, detections, &num_detections);
   /* Teardown tensor mapping */
   for (i=0; i<2; i++) {
     gst_memory_unmap (in_mem[i], &in_info[i]);

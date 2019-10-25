@@ -116,7 +116,7 @@ GType gst_tensor_decode_get_type (void);
 gboolean read_lines (const gchar *file_name, GList **lines);
 gboolean tflite_load_labels (const gchar *labels_path, const gchar *labels[LABEL_SIZE]);
 gboolean tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE][DETECTION_MAX]);
-gboolean get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, const GstVideoMeta *vmeta, DetectedObject *detections, guint *num_detections);
+gboolean get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, DetectedObject *detections, guint *num_detections);
 
 G_END_DECLS
 

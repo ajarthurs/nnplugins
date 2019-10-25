@@ -139,7 +139,7 @@ nms (DetectedObject *detections, guint num_detections)
  * @brief Get detected objects.
  */
 gboolean
-get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, const GstVideoMeta *vmeta, DetectedObject *detections, guint *num_detections)
+get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *labels[LABEL_SIZE], const gfloat *predictions, const gfloat *boxes, DetectedObject *detections, guint *num_detections)
 {
   *num_detections = 0;
   guint d, l;
@@ -154,13 +154,6 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
     gfloat ymax = ycenter + h / 2.f;
     gfloat xmax = xcenter + w / 2.f;
 
-    gint vwidth = (vmeta)? vmeta->width : MODEL_WIDTH;
-    gint vheight = (vmeta)? vmeta->height : MODEL_HEIGHT;
-    gint x = xmin * vwidth;
-    gint y = ymin * vheight;
-    guint width = (xmax - xmin) * vwidth;
-    guint height = (ymax - ymin) * vheight;
-
     for (l = 1; l < LABEL_SIZE; l++) {
       gfloat score = EXPIT (predictions[l]);
       /**
@@ -174,14 +167,13 @@ get_detected_objects (gfloat box_priors[BOX_SIZE][DETECTION_MAX], const gchar *l
 
       detections[*num_detections].class_id = l;
       detections[*num_detections].class_label = labels[l];
-      detections[*num_detections].x = x;
-      detections[*num_detections].y = y;
-      detections[*num_detections].width = width;
-      detections[*num_detections].height = height;
+      detections[*num_detections].x = UINT_MAX * xmin;
+      detections[*num_detections].y = UINT_MAX * ymin;
+      detections[*num_detections].width = UINT_MAX * (xmax - xmin);
+      detections[*num_detections].height = UINT_MAX * (ymax - ymin);
       detections[*num_detections].score = score;
       (*num_detections)++;
     }
-
     predictions += LABEL_SIZE;
     boxes += BOX_SIZE;
   }
