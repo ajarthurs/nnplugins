@@ -4,9 +4,17 @@ This element attaches regions-of-interest (ROIs) using GStreamer's GstMeta API.
 
 ## Prerequisites
 
+* GStreamer 1.x
+* NNStreamer 1.x
+
 ## Installation
 
-Insert `tensordecode name=decoder labels=<labels_file> boxpriors=<box_priors_file>`, preferably after NNStreamer's `tensor_filter` element. Pipe the desired output video stream into `decoder.video_sink`.
+```sh
+meson build
+sudo ninja -vC build install
+```
+
+Insert `ssddecode name=decoder labels=<labels_file> boxpriors=<box_priors_file>`, preferably after NNStreamer's `tensor_filter` element. Pipe the desired output video stream into `decoder.video_sink`.
 
 
 ## Example
@@ -18,6 +26,6 @@ Basic pipeline that detects objects with SSD-MobileNetV1:
   t. ! queue ! videoscale ! video/x-raw,width=300,height=300,format=RGB !  tensor_converter !
     tensor_transform mode=arithmetic option=typecast:float32,add:-127.5,div:127.5 !
     tensor_filter framework=tensorflow-lite model=./tflite_model/ssd_mobilenet_v1_coco.tflite !
-    tensordecode name=decoder labels=./tflite_model/coco_labels_list.txt boxpriors=./tflite_model/box_priors-ssd_mobilenet.txt !
+    ssddecode name=decoder labels=./tflite_model/coco_labels_list.txt boxpriors=./tflite_model/box_priors-ssd_mobilenet.txt !
     appsink name=test sync=false
 ```

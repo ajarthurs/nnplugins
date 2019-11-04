@@ -1,16 +1,33 @@
+plugin_LTLIBRARIES = libtensordecode.la libgstssddecode.la
+
 ##############################################################################
-# Tensor Decoder
+# Tensor Decoder Utilities/Common Functions
 ##############################################################################
-plugin_LTLIBRARIES = libgsttensordecode.la
 
 # sources used to compile this plug-in
-libgsttensordecode_la_SOURCES = gsttensordecode.c libtensordecode.c gsttensordecode.h
+libtensordecode_la_SOURCES = libtensordecode.c libtensordecode.h
 
 # compiler and linker flags used to compile this plugin, set in configure.ac
-libgsttensordecode_la_CFLAGS = $(GST_CFLAGS)
-libgsttensordecode_la_LIBADD = $(GST_LIBS)
-libgsttensordecode_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
-libgsttensordecode_la_LIBTOOLFLAGS = --tag=disable-static
+libtensordecode_la_CFLAGS = $(GST_CFLAGS)
+libtensordecode_la_LIBADD = $(GST_LIBS)
+libtensordecode_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
+libtensordecode_la_LIBTOOLFLAGS = --tag=disable-static
 
 # headers we need but don't want installed
-noinst_HEADERS = gsttensordecode.h
+noinst_HEADERS = libtensordecode.h
+
+##############################################################################
+# SSD Decoder
+##############################################################################
+
+# sources used to compile this plug-in
+libgstssddecode_la_SOURCES = gstssddecode.c gstssddecode.h
+
+# compiler and linker flags used to compile this plugin, set in configure.ac
+libgstssddecode_la_CFLAGS = $(GST_CFLAGS)
+libgstssddecode_la_LIBADD = $(GST_LIBS)
+libgstssddecode_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
+libgstssddecode_la_LIBTOOLFLAGS = --tag=disable-static
+
+# headers we need but don't want installed
+noinst_HEADERS = gstssddecode.h

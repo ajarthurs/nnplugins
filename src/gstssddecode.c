@@ -3,7 +3,7 @@
  * Copyright (C) 2005 Thomas Vander Stichele <thomas@apestaart.org>
  * Copyright (C) 2005 Ronald S. Bultje <rbultje@ronald.bitfreak.net>
  * Copyright (C) 2019 Aaron Arthurs <aajarthurs@gmail.com>
- *
+ * 
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
  * to deal in the Software without restriction, including without limitation
@@ -44,14 +44,14 @@
  */
 
 /**
- * SECTION:element-tensordecode
+ * SECTION:element-ssddecode
  *
  * Decode boundary boxes from tensors and add results to the stream's GstMeta-space.
  *
  * <refsect2>
  * <title>Example launch line</title>
  * |[
- * gst-launch-1.0 -v -m fakesrc ! tensordecode ! fakesink silent=TRUE
+ * gst-launch-1.0 -v -m fakesrc ! ssddecode boxpriors=PATH labels=PATH ! fakesink silent=TRUE
  * ]|
  * </refsect2>
  */
@@ -63,10 +63,17 @@
 #include <gst/gst.h>
 #include <nnstreamer/tensor_typedef.h>
 
-#include "gsttensordecode.h"
+#include "gstssddecode.h"
 
-GST_DEBUG_CATEGORY_STATIC (gst_tensor_decode_debug);
-#define GST_CAT_DEFAULT gst_tensor_decode_debug
+GST_DEBUG_CATEGORY_STATIC (gst_ssddecode_debug);
+#define GST_CAT_DEFAULT gst_ssddecode_debug
+
+/* Filter signals and args */
+enum
+{
+  /* FILL ME */
+  LAST_SIGNAL
+};
 
 enum
 {
@@ -81,37 +88,41 @@ enum
  */
 #define TENSOR_CAPS_STRING GST_TENSOR_CAP_DEFAULT "; " GST_TENSORS_CAP_DEFAULT
 #define VIDEO_CAPS_STRING GST_VIDEO_CAPS_MAKE(GST_VIDEO_FORMATS_ALL)
-#define TENSORDECODE_DESC "Decode boundary boxes from tensors"
+#define SSDDECODE_DESC "Decode boundary boxes from tensors"
 
 /* the capabilities of the inputs and outputs.
  *
  * describe the real formats here.
  */
-static GstStaticPadTemplate tensor_sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
+static GstStaticPadTemplate sink_factory = GST_STATIC_PAD_TEMPLATE ("sink",
     GST_PAD_SINK,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (TENSOR_CAPS_STRING)
+    GST_STATIC_CAPS ("ANY")
     );
 
-static GstStaticPadTemplate tensor_src_factory = GST_STATIC_PAD_TEMPLATE ("src",
+static GstStaticPadTemplate src_factory = GST_STATIC_PAD_TEMPLATE ("src",
     GST_PAD_SRC,
     GST_PAD_ALWAYS,
-    GST_STATIC_CAPS (TENSOR_CAPS_STRING)
+    GST_STATIC_CAPS ("ANY")
     );
 
-#define gst_tensor_decode_parent_class parent_class
-G_DEFINE_TYPE (GstTensorDecode, gst_tensor_decode, GST_TYPE_ELEMENT);
+#define gst_ssddecode_parent_class parent_class
+G_DEFINE_TYPE (GstSSDDecode, gst_ssddecode, GST_TYPE_ELEMENT);
 
-static void gst_tensor_decode_set_property (GObject * object, guint prop_id, const GValue * value, GParamSpec * pspec);
-static void gst_tensor_decode_get_property (GObject * object, guint prop_id, GValue * value, GParamSpec * pspec);
-static GstFlowReturn gst_tensor_decode_chain (GstPad *pad, GstObject *parent, GstBuffer *buf);
-static GstFlowReturn gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf);
+static void gst_ssddecode_set_property (GObject * object, guint prop_id,
+    const GValue * value, GParamSpec * pspec);
+static void gst_ssddecode_get_property (GObject * object, guint prop_id,
+    GValue * value, GParamSpec * pspec);
+
+static gboolean gst_ssddecode_sink_event (GstPad * pad, GstObject * parent, GstEvent * event);
+static GstFlowReturn gst_ssddecode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf);
+static GstBuffer *gst_ssddecode_process (GstSSDDecode *filter, GstBuffer *inbuf);
 
 /* GObject vmethod implementations */
 
-/* initialize the tensordecode's class */
+/* initialize the ssddecode's class */
 static void
-gst_tensor_decode_class_init (GstTensorDecodeClass * klass)
+gst_ssddecode_class_init (GstSSDDecodeClass * klass)
 {
   GObjectClass *gobject_class;
   GstElementClass *gstelement_class;
@@ -119,8 +130,8 @@ gst_tensor_decode_class_init (GstTensorDecodeClass * klass)
   gobject_class = (GObjectClass *) klass;
   gstelement_class = (GstElementClass *) klass;
 
-  gobject_class->set_property = gst_tensor_decode_set_property;
-  gobject_class->get_property = gst_tensor_decode_get_property;
+  gobject_class->set_property = gst_ssddecode_set_property;
+  gobject_class->get_property = gst_ssddecode_get_property;
 
   g_object_class_install_property (gobject_class, PROP_LABELS,
       g_param_spec_string ("labels", "Labels", "Path to labels list file ?",
@@ -135,13 +146,15 @@ gst_tensor_decode_class_init (GstTensorDecodeClass * klass)
           FALSE, G_PARAM_READWRITE));
 
   gst_element_class_set_details_simple(gstelement_class,
-    "TensorDecode",
-    "Tensor Decoder",
-    "Tensor Decoder Element",
+    "SSDDecode",
+    "SSD Decoder",
+    "SSD Decoder Element",
     "Aaron Arthurs <aajarthurs@gmail.com>");
 
-  gst_element_class_add_pad_template (gstelement_class, gst_static_pad_template_get (&tensor_sink_factory));
-  gst_element_class_add_pad_template (gstelement_class, gst_static_pad_template_get (&tensor_src_factory));
+  gst_element_class_add_pad_template (gstelement_class,
+      gst_static_pad_template_get (&src_factory));
+  gst_element_class_add_pad_template (gstelement_class,
+      gst_static_pad_template_get (&sink_factory));
 }
 
 /* initialize the new element
@@ -150,23 +163,28 @@ gst_tensor_decode_class_init (GstTensorDecodeClass * klass)
  * initialize instance structure
  */
 static void
-gst_tensor_decode_init (GstTensorDecode * filter)
+gst_ssddecode_init (GstSSDDecode * filter)
 {
-  /* tensor pads */
-  filter->tensor_sinkpad = gst_pad_new_from_static_template (&tensor_sink_factory, "tensor_sink");
-  gst_element_add_pad (GST_ELEMENT (filter), filter->tensor_sinkpad);
+  filter->sinkpad = gst_pad_new_from_static_template (&sink_factory, "sink");
+  gst_pad_set_event_function (filter->sinkpad,
+                              GST_DEBUG_FUNCPTR(gst_ssddecode_sink_event));
+  gst_pad_set_chain_function (filter->sinkpad,
+                              GST_DEBUG_FUNCPTR(gst_ssddecode_chain));
+  GST_PAD_SET_PROXY_CAPS (filter->sinkpad);
+  gst_element_add_pad (GST_ELEMENT (filter), filter->sinkpad);
 
-  filter->tensor_srcpad = gst_pad_new_from_static_template (&tensor_src_factory, "src");
-  gst_element_add_pad (GST_ELEMENT (filter), filter->tensor_srcpad);
+  filter->srcpad = gst_pad_new_from_static_template (&src_factory, "src");
+  GST_PAD_SET_PROXY_CAPS (filter->srcpad);
+  gst_element_add_pad (GST_ELEMENT (filter), filter->srcpad);
 
-  gst_pad_set_chain_function (filter->tensor_sinkpad, GST_DEBUG_FUNCPTR(gst_tensor_decode_chain));
+  filter->silent = FALSE;
 }
 
 static void
-gst_tensor_decode_set_property (GObject * object, guint prop_id,
+gst_ssddecode_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
 {
-  GstTensorDecode *filter = GST_TENSORDECODE (object);
+  GstSSDDecode *filter = GST_SSDDECODE (object);
 
   switch (prop_id) {
     case PROP_LABELS:
@@ -201,10 +219,10 @@ gst_tensor_decode_set_property (GObject * object, guint prop_id,
 }
 
 static void
-gst_tensor_decode_get_property (GObject * object, guint prop_id,
+gst_ssddecode_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec)
 {
-  GstTensorDecode *filter = GST_TENSORDECODE (object);
+  GstSSDDecode *filter = GST_SSDDECODE (object);
 
   switch (prop_id) {
     case PROP_LABELS:
@@ -224,33 +242,47 @@ gst_tensor_decode_get_property (GObject * object, guint prop_id,
 
 /* GstElement vmethod implementations */
 
+/* this function handles sink events */
+static gboolean
+gst_ssddecode_sink_event (GstPad * pad, GstObject * parent, GstEvent * event)
+{
+  GstSSDDecode *filter;
+  gboolean ret;
 
-/*
+  filter = GST_SSDDECODE (parent);
+
+  GST_LOG_OBJECT (filter, "Received %s event: %" GST_PTR_FORMAT,
+      GST_EVENT_TYPE_NAME (event), event);
+
+  switch (GST_EVENT_TYPE (event)) {
+    case GST_EVENT_CAPS:
+    {
+      GstCaps * caps;
+
+      gst_event_parse_caps (event, &caps);
+      /* do something with the caps */
+
+      /* and forward */
+      ret = gst_pad_event_default (pad, parent, event);
+      break;
+    }
+    default:
+      ret = gst_pad_event_default (pad, parent, event);
+      break;
+  }
+  return ret;
+}
+
+/* chain function
  * this function is called when a buffer is pushed into the sink-pad
  */
 static GstFlowReturn
-gst_tensor_decode_chain (GstPad *pad, GstObject *parent, GstBuffer *buf)
+gst_ssddecode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 {
-  GstTensorDecode *filter;
-  filter = GST_TENSORDECODE (parent);
-  return gst_tensor_decode_process (filter, buf);
-}
-
-
-/*
- * this function decodes and scales objects given the tensor
- */
-static GstFlowReturn
-gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf)
-{
+  GstSSDDecode *filter;
   GstBuffer *outbuf;
   gboolean sanity_check = TRUE;
-  GstMemory *in_mem[NNS_TENSOR_SIZE_LIMIT];
-  GstMapInfo in_info[NNS_TENSOR_SIZE_LIMIT];
-  gfloat *predictions;
-  gfloat *boxes;
-  DetectedObject detections[DETECTION_MAX * LABEL_SIZE];
-  guint num_detections = 0, i;
+  filter = GST_SSDDECODE (parent);
   if (!filter->labels_path) {
     GST_ERROR_OBJECT(filter, "Required property 'labels' is missing");
     sanity_check = FALSE;
@@ -260,10 +292,30 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf)
     sanity_check = FALSE;
   }
   if (!sanity_check) return GST_FLOW_ERROR;
-  /*FIXME: Hard-coding some assumptions about the tensors from the model (tensor_filter) */
+  outbuf = gst_ssddecode_process (filter, buf);
+  if (!outbuf) return GST_FLOW_ERROR;
+  /* Push tensor buffer to srcpad */
+  return gst_pad_push (filter->srcpad, outbuf);
+}
+
+/*
+ * this function decodes and scales objects given the tensor
+ * returns annotated buffer on success, NULL on error
+ */
+static GstBuffer *
+gst_ssddecode_process (GstSSDDecode *filter, GstBuffer *inbuf)
+{
+  GstBuffer *outbuf;
+  gboolean sanity_check = TRUE;
+  GstMemory *in_mem[NNS_TENSOR_SIZE_LIMIT];
+  GstMapInfo in_info[NNS_TENSOR_SIZE_LIMIT];
+  gfloat *predictions;
+  gfloat *boxes;
+  DetectedObject detections[DETECTION_MAX * LABEL_SIZE];
+  guint num_detections = 0, i;
   /* Map boxes and predictions tensors from model */
   for (i=0; i<2; i++) {
-    in_mem[i] = gst_buffer_peek_memory (tbuf, i);
+    in_mem[i] = gst_buffer_peek_memory (inbuf, i);
     g_assert (gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ));
   }
   boxes = (gfloat *)in_info[0].data;
@@ -275,12 +327,12 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf)
     gst_memory_unmap (in_mem[i], &in_info[i]);
   }
   /* Request write-access to tensor buffer to add ROIs, which will be pushed out the tensor srcpad */
-  outbuf = gst_buffer_make_writable(tbuf);
+  outbuf = gst_buffer_make_writable(inbuf);
   if (!gst_buffer_is_writable(outbuf)) {
     GST_ERROR_OBJECT (filter, "Failed to gain write-access to tensor buffer: %" GST_PTR_FORMAT, outbuf);
     sanity_check = FALSE;
   }
-  if(!sanity_check) return GST_FLOW_ERROR;
+  if(!sanity_check) return NULL;
   /* Attach ROIs to the tensor buffer */
   for(i=0; i<num_detections; i++) {
     DetectedObject *d = &detections[i];
@@ -300,8 +352,7 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf)
         );
     gst_video_region_of_interest_meta_add_param(meta, s);
   }
-  /* Push tensor buffer to tensor srcpad */
-  return gst_pad_push (filter->tensor_srcpad, outbuf);
+  return outbuf;
 }
 
 /* entry point to initialize the plug-in
@@ -309,14 +360,17 @@ gst_tensor_decode_process (GstTensorDecode *filter, GstBuffer *tbuf)
  * register the element factories and other features
  */
 static gboolean
-tensordecode_init (GstPlugin * tensordecode)
+ssddecode_init (GstPlugin * ssddecode)
 {
-  /* debug category for fltering log messages */
-  GST_DEBUG_CATEGORY_INIT (gst_tensor_decode_debug, "tensordecode",
-      0, TENSORDECODE_DESC);
+  /* debug category for fltering log messages
+   *
+   * exchange the string 'Template ssddecode' with your description
+   */
+  GST_DEBUG_CATEGORY_INIT (gst_ssddecode_debug, "ssddecode",
+      0, SSDDECODE_DESC);
 
-  return gst_element_register (tensordecode, "tensordecode", GST_RANK_NONE,
-      GST_TYPE_TENSORDECODE);
+  return gst_element_register (ssddecode, "ssddecode", GST_RANK_NONE,
+      GST_TYPE_SSDDECODE);
 }
 
 /* PACKAGE: this is usually set by autotools depending on some _INIT macro
@@ -325,18 +379,19 @@ tensordecode_init (GstPlugin * tensordecode)
  * compile this code. GST_PLUGIN_DEFINE needs PACKAGE to be defined.
  */
 #ifndef PACKAGE
-#define PACKAGE "tensor-decode-element"
+#define PACKAGE "ssddecode"
 #endif
 
-/* gstreamer looks for this structure to register tensordecode elements
+/* gstreamer looks for this structure to register ssddecodes
  *
+ * exchange the string 'Template ssddecode' with your ssddecode description
  */
 GST_PLUGIN_DEFINE (
     GST_VERSION_MAJOR,
     GST_VERSION_MINOR,
-    tensordecode,
-    TENSORDECODE_DESC,
-    tensordecode_init,
+    ssddecode,
+    SSDDECODE_DESC,
+    ssddecode_init,
     PACKAGE_VERSION,
     GST_LICENSE,
     GST_PACKAGE_NAME,

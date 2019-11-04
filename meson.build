@@ -30,14 +30,12 @@ cdata.set_quoted('GST_PACKAGE_NAME', 'GStreamer Neural Network Plug-ins')
 cdata.set_quoted('GST_PACKAGE_ORIGIN', 'https://gstreamer.freedesktop.org')
 configure_file(output : 'config.h', configuration : cdata)
 
-# Plugin tensordecode
-plugin_sources = [
-  'src/gsttensordecode.c',
-  'src/libtensordecode.c',
-  ]
-
-gsttensordecode = library('gsttensordecode',
-  plugin_sources,
+# Plugin ssddecode
+gstssddecode = library('gstssddecode',
+  [
+    'src/gstssddecode.c',
+    'src/libtensordecode.c',
+  ],
   c_args: plugin_c_args,
   dependencies : [gst_dep, gst_video_dep, nnstreamer_dep, libm],
   install : true,
