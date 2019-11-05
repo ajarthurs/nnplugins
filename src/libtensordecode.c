@@ -14,7 +14,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <gst/gst.h>
-#include "gsttensordecode.h"
+#include "libtensordecode.h"
 
 /**
  * @brief `qsort` callback: Compare score of detected objects in descending order.
