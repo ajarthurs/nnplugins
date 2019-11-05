@@ -11,15 +11,19 @@ project('nnplugins', 'c',
 gst_version = meson.project_version()
 gst_api_version = '1.0'
 gst_dep = dependency('gstreamer-1.0', fallback : ['gstreamer', 'gst_dep'])
+gst_app_dep = dependency('gstreamer-app-' + gst_api_version)
 gst_video_dep = dependency('gstreamer-video-' + gst_api_version)
 plugins_install_dir = join_paths(get_option('libdir'), 'gstreamer-1.0')
 
-nnstreamer_dep = dependency('nnstreamer')
+cairo_dep = dependency('cairo', required: false)
+nnstreamer_dep = dependency('nnstreamer', required: true)
+tflite_dep = dependency('tensorflow-lite', required: false)
 
 cc = meson.get_compiler('c')
-libm = cc.find_library('m', required : true)
+libm_dep = cc.find_library('m', required : true)
 
 plugin_c_args = ['-DHAVE_CONFIG_H']
+tests_c_args = []
 
 cdata = configuration_data()
 cdata.set_quoted('PACKAGE_VERSION', gst_version)
@@ -37,7 +41,11 @@ gstssddecode = library('gstssddecode',
     'src/libtensordecode.c',
   ],
   c_args: plugin_c_args,
-  dependencies : [gst_dep, gst_video_dep, nnstreamer_dep, libm],
+  dependencies : [gst_dep, gst_video_dep, nnstreamer_dep, libm_dep],
   install : true,
   install_dir : plugins_install_dir,
 )
+
+
+# Tests
+subdir('tests')
