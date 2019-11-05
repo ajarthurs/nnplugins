@@ -1,0 +1,2 @@
+# Common feature options
+option('tests', type : 'feature', value : 'auto', yield : true)
