@@ -62,17 +62,21 @@ iou (const DetectedObject *a, const DetectedObject *b)
 static guint
 nms (DetectedObject *detections, guint num_detections)
 {
-  guint i, j, k, num_overlaps = 0, num_nonoverlaps;
+  guint i, j, k, num_overlaps = 0, num_nonoverlaps, num_detections_capped;
   gboolean del[DETECTION_MAX * LABEL_SIZE];
-  qsort(detections, num_detections, sizeof(DetectedObject), compare_detection_scores);
-  for (i = 0; i < num_detections; i++) {
+  if (num_detections > 100)
+    num_detections_capped = 100;
+  else
+    num_detections_capped = num_detections;
+  qsort(detections, num_detections_capped, sizeof(DetectedObject), compare_detection_scores);
+  for (i = 0; i < num_detections_capped; i++) {
     del[i] = FALSE;
   }
-  for (i = 0; i < num_detections; i++) {
+  for (i = 0; i < num_detections_capped; i++) {
     if (del[i])
       continue;
 
-    for (j = (i + 1); j < num_detections; j++) {
+    for (j = (i + 1); j < num_detections_capped; j++) {
       if (!del[j] &&
         detections[i].class_id == detections[j].class_id &&
         iou (&detections[i], &detections[j]) > THRESHOLD_IOU
@@ -82,20 +86,20 @@ nms (DetectedObject *detections, guint num_detections)
       }
     }
   }
-  num_nonoverlaps = num_detections - num_overlaps;
+  num_nonoverlaps = num_detections_capped - num_overlaps;
   for (i = 0; i < num_nonoverlaps; i++) {
     if (!del[i])
       continue;
 
     j = i;
-    while(del[i] && j < (num_detections-1)) {
-      for(k = i; k < (num_detections-1); k++) {
+    while(del[i] && j < (num_detections_capped-1)) {
+      for(k = i; k < (num_detections_capped-1); k++) {
         del[k] = del[k+1];
         memcpy(&detections[k], &detections[k+1], sizeof(DetectedObject));
       }
       j++;
     }
-    num_detections -= (j-i);
+    num_detections_capped -= (j-i);
   }
   return num_nonoverlaps;
 }
