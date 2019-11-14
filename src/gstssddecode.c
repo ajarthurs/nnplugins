@@ -39,6 +39,7 @@ enum
   PROP_0, /* Anchor prop. Do not remove. */
   PROP_LABELS,
   PROP_BOX_PRIORS,
+  PROP_DEQUANT,
   PROP_SILENT
 };
 
@@ -100,6 +101,10 @@ gst_ssddecode_class_init (GstSSDDecodeClass * klass)
       g_param_spec_string ("boxpriors", "Box-Priors", "Path to box-priors file ?",
           "", G_PARAM_READWRITE | G_PARAM_STATIC_STRINGS));
 
+  g_object_class_install_property (gobject_class, PROP_DEQUANT,
+      g_param_spec_boolean ("dequant", "Dequant", "Dequantize input tensors (workaround for NNStreamer multi-tensor support; consider tensor_split, tensor_transform and tensor_merge instead) ?",
+          FALSE, G_PARAM_READWRITE));
+
   g_object_class_install_property (gobject_class, PROP_SILENT,
       g_param_spec_boolean ("silent", "Silent", "Produce verbose output ?",
           FALSE, G_PARAM_READWRITE));
@@ -136,6 +141,7 @@ gst_ssddecode_init (GstSSDDecode * filter)
   GST_PAD_SET_PROXY_CAPS (filter->srcpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->srcpad);
 
+  filter->need_dequant = FALSE;
   filter->silent = FALSE;
 }
 
@@ -168,6 +174,9 @@ gst_ssddecode_set_property (GObject * object, guint prop_id,
       else if (!filter->silent)
         GST_LOG_OBJECT(filter, "Loaded box-priors from %s", filter->box_priors_path);
       break;
+    case PROP_DEQUANT:
+      filter->need_dequant = g_value_get_boolean (value);
+      break;
     case PROP_SILENT:
       filter->silent = g_value_get_boolean (value);
       break;
@@ -189,6 +198,9 @@ gst_ssddecode_get_property (GObject * object, guint prop_id,
       break;
     case PROP_BOX_PRIORS:
       g_value_set_string (value, filter->box_priors_path);
+      break;
+    case PROP_DEQUANT:
+      g_value_set_boolean (value, filter->need_dequant);
       break;
     case PROP_SILENT:
       g_value_set_boolean (value, filter->silent);
@@ -268,19 +280,34 @@ gst_ssddecode_process (GstSSDDecode *filter, GstBuffer *inbuf)
   gboolean sanity_check = TRUE;
   GstMemory *in_mem[NNS_TENSOR_SIZE_LIMIT];
   GstMapInfo in_info[NNS_TENSOR_SIZE_LIMIT];
-  gfloat *predictions;
-  gfloat *boxes;
+  gfloat boxes[DETECTION_MAX * BOX_SIZE];
+  gfloat predictions[DETECTION_MAX * LABEL_SIZE];
+  gfloat *pboxes;
+  gfloat *ppredictions;
   DetectedObject detections[DETECTION_MAX * LABEL_SIZE];
-  guint num_detections = 0, i;
+  guint num_detections = 0, i, j;
   /* Map boxes and predictions tensors from model */
   for (i=0; i<2; i++) {
     in_mem[i] = gst_buffer_peek_memory (inbuf, i);
     g_assert (gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ));
   }
-  boxes = (gfloat *)in_info[0].data;
-  predictions = (gfloat *)in_info[1].data;
+  if (filter->need_dequant) {
+    pboxes = boxes;
+    ppredictions = predictions;
+    for (i=0; i<DETECTION_MAX; i++)
+      for (j=0; j<BOX_SIZE; j++)
+        //boxes[i*BOX_SIZE+j] = (gfloat)(((gfloat)(in_info[0].data[i*BOX_SIZE+j])-187.0) * 0.08773017674684525);
+        boxes[i*BOX_SIZE+j] = (gfloat)(((gfloat)(in_info[0].data[i*BOX_SIZE+j])-180.0) * 0.0448576174609375);
+    for (i=0; i<DETECTION_MAX; i++)
+      for (j=0; j<LABEL_SIZE; j++)
+        //predictions[i*LABEL_SIZE+j] = (gfloat)(((gfloat)(in_info[1].data[i*LABEL_SIZE+j])-0.0) * 0.00390625);
+        predictions[i*LABEL_SIZE+j] = (gfloat)(((gfloat)(in_info[1].data[i*LABEL_SIZE+j])-128.0) / 128.0);
+  } else { // no dequant, read as-is
+    pboxes = (gfloat *)(in_info[0].data);
+    ppredictions = (gfloat *)(in_info[1].data);
+  }
   /* Process boxes and predictions into an array of DetectedObjects */
-  sanity_check = get_detected_objects (filter->box_priors, filter->labels, predictions, boxes, detections, &num_detections);
+  sanity_check = get_detected_objects (filter->box_priors, filter->labels, ppredictions, pboxes, detections, &num_detections);
   /* Teardown tensor mapping */
   for (i=0; i<2; i++) {
     gst_memory_unmap (in_mem[i], &in_info[i]);

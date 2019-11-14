@@ -37,6 +37,7 @@ struct _GstSSDDecode
   gfloat box_priors[BOX_SIZE][DETECTION_MAX];
   const gchar *labels[LABEL_SIZE];
   gboolean silent;
+  gboolean need_dequant;
 };
 
 struct _GstSSDDecodeClass 
