@@ -411,6 +411,10 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
     width = iter->width;
     height = iter->height;
 
+    /* skip if out-of-bounds */
+    if(x < 0 || y < 0 || (x+width+1) > VIDEO_WIDTH || (y+height+1) > VIDEO_HEIGHT)
+      continue;
+
     /* draw rectangle */
     _print_log("draw_overlay_cb: drawing rectangle");
     cairo_rectangle (cr, x, y, width, height);
