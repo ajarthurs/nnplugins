@@ -196,9 +196,7 @@ tflite_load_box_priors (const gchar *box_priors_path, gfloat box_priors[BOX_SIZE
   gchar *box_row;
   GList *box_priors_lines = NULL;
 
-  GST_DEBUG("HELLO");
   g_return_val_if_fail (read_lines (box_priors_path, &box_priors_lines), FALSE);
-  GST_DEBUG("HELLO AGAIN");
 
   for (row = 0; row < BOX_SIZE; row++) {
     guint column = 0;
