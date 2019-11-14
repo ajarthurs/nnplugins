@@ -64,7 +64,10 @@
 //#define VIDEO_HEIGHT    768
 
 #define tflite_model_path "./tests/testdata"
-#define tflite_model "ssd_mobilenet_v1_coco.tflite"
+#define tflite_model "detect.tflite"
+//#define tflite_model "ssd_mobilenet_v1_coco_postprocessed.tflite"
+//#define tflite_model "ssd_mobilenet_v1_coco_uint8.tflite"
+//#define tflite_model "ssd_mobilenet_v1_coco_float32.tflite"
 #define MODEL_WIDTH     300
 #define MODEL_HEIGHT    300
 //#define DETECTION_MAX   1917
@@ -551,12 +554,19 @@ main (int argc, char ** argv)
       "video/x-raw,width=%d,height=%d,format=RGB,framerate=24/1 ! tee name=t_raw "
       "t_raw. ! queue max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! videoconvert ! cairooverlay name=tensor_res ! ximagesink name=img_tensor "
       "t_raw. ! queue leaky=2 max-size-buffers=1 max-size-bytes=0 max-size-time=0 ! videoscale ! video/x-raw,width=%d,height=%d ! tensor_converter ! "
-        "tensor_transform mode=arithmetic option=typecast:float32,add:-127.5,div:127.5 ! "
+        //"tensor_transform mode=arithmetic option=typecast:float32,add:-127.5,div:127.5 ! "
+        //"tensor_transform mode=arithmetic option=typecast:uint8,add:0 ! "
         "tensor_filter framework=tensorflow-lite model=%s ! "
         //"tensor_filter framework=tensorflow model=%s "
           //"input=1:%d:%d:3 inputname=normalized_input_image_tensor inputtype=float32 "
           //"output=1:%d:%d,1:%d:%d outputname=raw_outputs/box_encodings,scale_logits outputtype=float32,float32 ! "
-        "ssddecode name=decoder silent=FALSE labels=%s/%s boxpriors=%s/%s ! "
+        //"other/tensors, num_tensors=(int)2, framerate=(fraction)[ 0/1, 2147483647/1 ], dimensions=(string)"4:1917:1:1\,91:1917:1:1", types=(string)"uint8\,uint8"
+        //"tensor_split name=ssds tensorseg=1:1917:4,1:1917:91 silent=FALSE "
+        //  "ssds.src_0 ! tensor_transform mode=arithmetic option=typecast:float32,add:-180.0,mul:0.0448576174609375 ! ssdm.sink_0 "
+        //  "ssds.src_1 ! tensor_transform mode=arithmetic option=typecast:float32,add:-127.5,div:127.5 ! ssdm.sink_1 "
+        //"tensor_merge name=ssdm ! "
+        //"ssddecode name=decoder labels=%s/%s boxpriors=%s/%s ! "
+        "ssddecode name=decoder dequant=TRUE labels=%s/%s boxpriors=%s/%s ! "
         "appsink name=appsink emit-signals=TRUE ",
       tflite_model_path, str_video_file,
       VIDEO_WIDTH, VIDEO_HEIGHT,
