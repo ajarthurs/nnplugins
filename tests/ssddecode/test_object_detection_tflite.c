@@ -14,6 +14,8 @@
 
 #include "../libtests.h"
 
+#define tflite_model "ssd_mobilenet_v1_coco_float32.tflite"
+
 /**
 * @brief Data for pipeline and result.
 */
@@ -38,7 +40,7 @@ main (int argc, char ** argv)
   g_app.num_detections = 0;
   g_mutex_init (&g_app.mutex);
 
-  _check_cond_err (tflite_init_info (&g_app.tflite_info, tflite_model_path));
+  _check_cond_err (tflite_init_info (&g_app.tflite_info, tflite_model_path, tflite_model));
 
   /* init gstreamer */
   gst_init (&argc, &argv);

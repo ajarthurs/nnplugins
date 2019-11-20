@@ -4,7 +4,7 @@
  * @brief Check tflite model and load labels.
  */
 gboolean
-tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path)
+tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *tflite_model)
 {
   g_return_val_if_fail (tflite_info != NULL, FALSE);
 

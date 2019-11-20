@@ -54,7 +54,6 @@
 //#define tflite_model "detect.tflite"
 //#define tflite_model "ssd_mobilenet_v1_coco_postprocessed.tflite"
 //#define tflite_model "ssd_mobilenet_v1_coco_uint8.tflite"
-#define tflite_model "ssd_mobilenet_v1_coco_float32.tflite"
 #define MODEL_WIDTH     300
 #define MODEL_HEIGHT    300
 //#define DETECTION_MAX   1917
@@ -114,7 +113,7 @@ typedef struct
 
 extern AppData g_app;
 
-gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path);
+gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *tflite_model);
 void free_app_data (void);
 GstFlowReturn new_preroll_cb (GstElement * element, gpointer user_data);
 GstFlowReturn new_sample_cb (GstElement * element, gpointer user_data);
