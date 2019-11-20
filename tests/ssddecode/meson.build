@@ -2,6 +2,7 @@ if cairo_dep.found() and tflite_dep.found()
   executable('test_object_detection_tflite', 
     [
       'test_object_detection_tflite.c',
+      '../libtests.c',
       '../../src/libtensordecode.c',
     ],
     install: false,
