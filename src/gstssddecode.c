@@ -5,7 +5,7 @@
 /**
  * SECTION:element-ssddecode
  *
- * Decode boundary boxes from tensors and add results to the stream's GstMeta-space.
+ * Decode boundary boxes from an SSD model and add results to the stream's GstMeta-space.
  *
  * <refsect2>
  * <title>Example launch line</title>
@@ -48,7 +48,7 @@ enum
  */
 #define TENSOR_CAPS_STRING GST_TENSOR_CAP_DEFAULT "; " GST_TENSORS_CAP_DEFAULT
 #define VIDEO_CAPS_STRING GST_VIDEO_CAPS_MAKE(GST_VIDEO_FORMATS_ALL)
-#define SSDDECODE_DESC "Decode boundary boxes from tensors"
+#define SSDDECODE_DESC "Decode boundary boxes from an SSD model"
 
 /* the capabilities of the inputs and outputs.
  *
