@@ -14,7 +14,8 @@
 
 #include "../libtests.h"
 
-#define tflite_model "ssd_mobilenet_v1_coco_float32.tflite"
+//#define tflite_model "ssd_mobilenet_v1_coco_float32.tflite"
+#define tflite_model "ssd_mobilenet_v1_coco_uint8.tflite"
 
 /**
 * @brief Data for pipeline and result.
