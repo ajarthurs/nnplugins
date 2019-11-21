@@ -135,6 +135,7 @@ gst_ssddecode_init (GstSSDDecode * filter)
   GST_PAD_SET_PROXY_CAPS (filter->srcpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->srcpad);
 
+  filter->labels_path = NULL;
   filter->need_dequant = FALSE;
   filter->silent = FALSE;
 }
