@@ -46,6 +46,16 @@ gstssddecode = library('gstssddecode',
   install_dir : plugins_install_dir,
 )
 
+gstbbdecode = library('gstbbdecode',
+  [
+    'src/gstbbdecode.c',
+    'src/libtensordecode.c',
+  ],
+  c_args: plugin_c_args,
+  dependencies : [gst_dep, gst_video_dep, libm_dep],
+  install : true,
+  install_dir : plugins_install_dir,
+)
 
 # Tests
 subdir('tests')

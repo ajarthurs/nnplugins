@@ -1,4 +1,4 @@
-plugin_LTLIBRARIES = libtensordecode.la libgstssddecode.la
+plugin_LTLIBRARIES = libgstssddecode.la libgstbbdecode.la
 
 ##############################################################################
 # Tensor Decoder Utilities/Common Functions
@@ -31,3 +31,19 @@ libgstssddecode_la_LIBTOOLFLAGS = --tag=disable-static
 
 # headers we need but don't want installed
 noinst_HEADERS = gstssddecode.h
+
+##############################################################################
+# BB Decoder
+##############################################################################
+
+# sources used to compile this plug-in
+libgstbbdecode_la_SOURCES = gstbbdecode.c gstbbdecode.h
+
+# compiler and linker flags used to compile this plugin, set in configure.ac
+libgstbbdecode_la_CFLAGS = $(GST_CFLAGS)
+libgstbbdecode_la_LIBADD = $(GST_LIBS)
+libgstbbdecode_la_LDFLAGS = $(GST_PLUGIN_LDFLAGS)
+libgstbbdecode_la_LIBTOOLFLAGS = --tag=disable-static
+
+# headers we need but don't want installed
+noinst_HEADERS = gstbbdecode.h
