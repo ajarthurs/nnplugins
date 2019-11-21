@@ -6,8 +6,13 @@
 #define __LIB_TENSORDECODE_H__
 
 #include <gst/gst.h>
+#include <nnstreamer/tensor_typedef.h>
 
 G_BEGIN_DECLS
+
+/* Capabilities */
+#define TENSOR_CAPS_STRING GST_TENSOR_CAP_DEFAULT "; " GST_TENSORS_CAP_DEFAULT
+#define VIDEO_CAPS_STRING GST_VIDEO_CAPS_MAKE(GST_VIDEO_FORMATS_ALL)
 
 /* FIXME: Consider making these properties with default values */
 #define Y_SCALE         10.0f

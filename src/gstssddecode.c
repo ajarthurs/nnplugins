@@ -20,7 +20,6 @@
 #endif
 
 #include <gst/gst.h>
-#include <nnstreamer/tensor_typedef.h>
 
 #include "gstssddecode.h"
 
@@ -43,11 +42,6 @@ enum
   PROP_SILENT
 };
 
-/**
- * @brief Support multi-tensor along with single-tensor as the input
- */
-#define TENSOR_CAPS_STRING GST_TENSOR_CAP_DEFAULT "; " GST_TENSORS_CAP_DEFAULT
-#define VIDEO_CAPS_STRING GST_VIDEO_CAPS_MAKE(GST_VIDEO_FORMATS_ALL)
 #define SSDDECODE_DESC "Decode boundary boxes from an SSD model"
 
 /* the capabilities of the inputs and outputs.
