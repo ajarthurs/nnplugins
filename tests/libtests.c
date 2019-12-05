@@ -143,6 +143,7 @@ static void
 new_data_cb2 (GstElement * element, GstBuffer * buffer, gpointer user_data)
 {
   guint i = 0;
+  clock_t now, tdelta;
   gpointer state = NULL;
   _print_log("called new_data_cb2");
   GstVideoRegionOfInterestMeta *meta;
@@ -177,6 +178,15 @@ new_data_cb2 (GstElement * element, GstBuffer * buffer, gpointer user_data)
       );
     i++;
   }
+  /* Calculate FPS and log time of detections update */
+  //g_app.fps = 1.0 / (time(NULL) - g_app.prev_update_time);
+  now = clock();
+  tdelta = now - g_app.prev_update_time;
+  if (tdelta > 0)
+    g_app.fps = CLOCKS_PER_SEC / (gdouble)tdelta;
+  else
+    g_app.fps = 0.0;
+  g_app.prev_update_time = now;
   g_mutex_unlock (&g_app.mutex);
 }
 

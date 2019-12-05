@@ -45,6 +45,8 @@ main (int argc, char ** argv)
   g_app.bus = NULL;
   g_app.pipeline = NULL;
   g_app.num_detections = 0;
+  g_app.prev_update_time = clock();
+  g_app.fps = 0.0;
   g_mutex_init (&g_app.mutex);
 
   _check_cond_err (tflite_init_info (&g_app.tflite_info, tflite_model_path, tflite_model));

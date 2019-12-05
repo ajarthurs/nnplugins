@@ -14,6 +14,7 @@
 #include "../src/libtensordecode.h"
 
 #include <math.h>
+#include <time.h>
 #include <cairo.h>
 #include <cairo-gobject.h>
 
@@ -109,6 +110,8 @@ typedef struct
   DetectedObject detected_objects[MAX_OBJECT_DETECTION];
   GstElement *appsink;
   GstElement *tensor_res;
+  clock_t prev_update_time;
+  gdouble fps;
 } AppData;
 
 extern AppData g_app;
