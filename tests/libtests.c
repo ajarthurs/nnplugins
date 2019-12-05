@@ -1,3 +1,7 @@
+/**
+ * @brief Library for unit tests.
+ */
+
 #include "../libtests.h"
 
 /**

@@ -1,15 +1,5 @@
 /**
  * @brief	Tensor stream example with TF-Lite model for object detection
- *
- * Get model by
- * $ cd $NNST_ROOT/bin
- * $ bash get-model-objet-detection-tflite.sh
- *
- * Run example :
- * Before running this example, GST_PLUGIN_PATH should be updated for nnstreamer plug-in.
- * $ export GST_PLUGIN_PATH=$GST_PLUGIN_PATH:<nnstreamer plugin path>
- * $ ./test_object_detection_tflite
- *
  */
 
 #include "../libtests.h"
