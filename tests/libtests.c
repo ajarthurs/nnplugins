@@ -267,6 +267,7 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
   gfloat x, y, width, height;
   guint drawed = 0;
   guint i;
+  char str[32];
 
   _print_log("called draw_overlay_cb");
 
@@ -279,6 +280,17 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
   cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
       CAIRO_FONT_WEIGHT_BOLD);
   cairo_set_font_size (cr, 20.0);
+
+  /* draw FPS */
+  snprintf(str, 32, "FPS=%.2f", g_app.fps);
+  cairo_move_to (cr, 50, 50);
+  cairo_text_path (cr, str);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_fill_preserve (cr);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_set_line_width (cr, .3);
+  cairo_stroke (cr);
+  cairo_fill_preserve (cr);
 
   for (i = 0; i < g_app.num_detections; i++) {
     DetectedObject *iter = &(g_app.detected_objects[i]);
