@@ -4,18 +4,50 @@
 
 #include "../libtests.h"
 
+GST_DEBUG_CATEGORY_STATIC(libtests);
+#define GST_CAT_DEFAULT libtests
+
+/**
+ * @brief General initialization for tests.
+ */
+gboolean
+init_test(int argc, char ** argv)
+{
+  /* init app variables */
+  g_app.running = FALSE;
+  g_app.loop = NULL;
+  g_app.bus = NULL;
+  g_app.pipeline = NULL;
+  g_app.num_detections = 0;
+  g_app.prev_update_time = clock();
+  g_app.fps = 0.0;
+  g_mutex_init (&g_app.mutex);
+  gst_init (&argc, &argv);
+  GST_DEBUG_CATEGORY_INIT (libtests, "via-nnplugins-testlib", 0, "Library for unit tests");
+  GST_INFO ("start app..");
+  /* main loop */
+  g_app.loop = g_main_loop_new (NULL, FALSE);
+  CHECK_COND_ERR (g_app.loop != NULL);
+  return TRUE;
+
+error:
+  GST_ERROR("Failed to initialize test");
+  return FALSE;
+}
+
 /**
  * @brief Check tflite model and load labels.
  */
 gboolean
-tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *tflite_model)
+tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *labels_file, const gchar *tflite_model, const gchar *tflite_box_priors_file)
 {
   g_return_val_if_fail (tflite_info != NULL, FALSE);
   tflite_info->model_path = g_strdup_printf ("%s/%s", path, tflite_model);
-  tflite_info->label_path = g_strdup_printf ("%s/%s", path, tflite_label);
-  tflite_info->box_prior_path =
-      g_strdup_printf ("%s/%s", path, tflite_box_priors);
-
+  tflite_info->label_path = g_strdup_printf ("%s/%s", path, labels_file);
+  if (tflite_box_priors_file)
+    tflite_info->box_prior_path = g_strdup_printf ("%s/%s", path, tflite_box_priors_file);
+  else
+    tflite_info->box_prior_path = NULL;
   if (!g_file_test (tflite_info->model_path, G_FILE_TEST_IS_REGULAR)) {
     GST_ERROR ("the file of model_path is not valid: %s\n", tflite_info->model_path);
     return FALSE;
@@ -24,12 +56,12 @@ tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar
     GST_ERROR ("the file of label_path is not valid%s\n", tflite_info->label_path);
     return FALSE;
   }
-  if (!g_file_test (tflite_info->box_prior_path, G_FILE_TEST_IS_REGULAR)) {
+  if (tflite_box_priors_file && !g_file_test (tflite_info->box_prior_path, G_FILE_TEST_IS_REGULAR)) {
     GST_ERROR ("the file of box_prior_path is not valid%s\n", tflite_info->box_prior_path);
     return FALSE;
   }
-
-  g_return_val_if_fail (tflite_load_box_priors (tflite_info->box_prior_path, tflite_info->box_priors), FALSE);
+  if (tflite_box_priors_file)
+    g_return_val_if_fail (tflite_load_box_priors (tflite_info->box_prior_path, tflite_info->box_priors), FALSE);
   g_return_val_if_fail (tflite_load_labels (tflite_info->label_path, tflite_info->labels), FALSE);
   return TRUE;
 }

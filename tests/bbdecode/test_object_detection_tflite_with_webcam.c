@@ -11,9 +11,13 @@
 #define FRAME_STEP FALSE
 #undef DBG
 #define DBG 0
-#define tflite_model "ssd_mobilenet_v1_coco_postprocessed_uint8.tflite"
 GST_DEBUG_CATEGORY_STATIC(myapp);
 #define GST_CAT_DEFAULT myapp
+#define TFLITE_MODEL_FILE "ssd_mobilenet_v1_coco_postprocessed_uint8.tflite"
+#define MODEL_WIDTH     300
+#define MODEL_HEIGHT    300
+//#define MODEL_WIDTH     640
+//#define MODEL_HEIGHT    640
 
 /**
 * @brief Data for pipeline and result.
@@ -27,20 +31,9 @@ int
 main (int argc, char ** argv)
 {
   gchar *str_pipeline;
-  /* init app variable */
-  g_app.running = FALSE;
-  g_app.loop = NULL;
-  g_app.bus = NULL;
-  g_app.pipeline = NULL;
-  g_app.num_detections = 0;
-  g_app.prev_update_time = clock();
-  g_app.fps = 0.0;
-  g_mutex_init (&g_app.mutex);
-  /* init gstreamer */
-  gst_init (&argc, &argv);
-
-  /* main loop */
-  g_app.loop = g_main_loop_new (NULL, FALSE);
+  CHECK_COND_ERR(init_test(argc, argv));
+  GST_DEBUG_CATEGORY_INIT (myapp, "via-nnplugins-test", 0, "Test object detection with a webcam (/dev/video0)");
+  CHECK_COND_ERR (tflite_init_info (&g_app.tflite_info, TEST_DATA_PATH, TEST_COCO_LABELS_FILE, TFLITE_MODEL_FILE, NULL));
   /* init pipeline */
   str_pipeline =
       g_strdup_printf
@@ -64,7 +57,7 @@ main (int argc, char ** argv)
       VIDEO_WIDTH, VIDEO_HEIGHT,
       MODEL_WIDTH, MODEL_HEIGHT,
       g_app.tflite_info.model_path,
-      tflite_model_path, tflite_label
+      TEST_DATA_PATH, TEST_COCO_LABELS_FILE
       );
       //g_app.tflite_info.model_path,
       //MODEL_WIDTH, MODEL_HEIGHT,

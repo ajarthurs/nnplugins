@@ -4,9 +4,13 @@
 
 #include "../libtests.h"
 
-#define tflite_model "ssd_mobilenet_v1_coco_postprocessed_uint8.tflite"
 GST_DEBUG_CATEGORY_STATIC(myapp);
 #define GST_CAT_DEFAULT myapp
+#define TFLITE_MODEL_FILE "ssd_mobilenet_v1_coco_postprocessed_uint8.tflite"
+#define MODEL_WIDTH     300
+#define MODEL_HEIGHT    300
+//#define MODEL_WIDTH     640
+//#define MODEL_HEIGHT    640
 
 /**
 * @brief Data for pipeline and result.
@@ -20,18 +24,10 @@ int
 main (int argc, char ** argv)
 {
   gchar *str_pipeline;
-  /* init app variable */
-  g_app.running = FALSE;
-  g_app.loop = NULL;
-  g_app.bus = NULL;
-  g_app.pipeline = NULL;
-  g_app.num_detections = 0;
-  g_mutex_init (&g_app.mutex);
-  /* init gstreamer */
-  gst_init (&argc, &argv);
-
-  /* main loop */
-  g_app.loop = g_main_loop_new (NULL, FALSE);
+  GstElement *e;
+  CHECK_COND_ERR(init_test(argc, argv));
+  GST_DEBUG_CATEGORY_INIT (myapp, "via-nnplugins-test", 0, "Test object detection with a video file");
+  CHECK_COND_ERR (tflite_init_info (&g_app.tflite_info, TEST_DATA_PATH, TEST_COCO_LABELS_FILE, TFLITE_MODEL_FILE, NULL));
   /* init pipeline */
   str_pipeline =
       g_strdup_printf
@@ -52,11 +48,11 @@ main (int argc, char ** argv)
         //"tensor_merge name=ssdm ! "
         "bbdecode name=decoder labels=%s/%s ! "
         "appsink name=appsink emit-signals=TRUE ",
-      tflite_model_path, str_video_file,
+      TEST_DATA_PATH, TEST_VIDEO_FILE,
       VIDEO_WIDTH, VIDEO_HEIGHT,
       MODEL_WIDTH, MODEL_HEIGHT,
       g_app.tflite_info.model_path,
-      tflite_model_path, tflite_label
+      TEST_DATA_PATH, TEST_COCO_LABELS_FILE
       );
       //g_app.tflite_info.model_path,
       //MODEL_WIDTH, MODEL_HEIGHT,

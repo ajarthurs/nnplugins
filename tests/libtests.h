@@ -40,31 +40,14 @@
  * Playback video w.r.t. the NN model's latency.
  */
 #define FRAME_STEP TRUE
+#define TEST_DATA_PATH "./tests/testdata"
+#define TEST_VIDEO_FILE "sample_1080p.mp4"
+#define TEST_COCO_LABELS_FILE "coco_labels_list.txt"
 
 #define VIDEO_WIDTH     640
 #define VIDEO_HEIGHT    640
 //#define VIDEO_WIDTH     1024
 //#define VIDEO_HEIGHT    768
-
-#define tflite_model_path "./tests/testdata"
-//#define tflite_model "detect.tflite"
-//#define tflite_model "ssd_mobilenet_v1_coco_postprocessed.tflite"
-//#define tflite_model "ssd_mobilenet_v1_coco_uint8.tflite"
-#define MODEL_WIDTH     300
-#define MODEL_HEIGHT    300
-//#define DETECTION_MAX   1917
-#define tflite_box_priors "box_priors-ssd_mobilenet.txt"
-
-////const gchar tflite_model[] = "ssd_resnet50_v1_fpn_coco.tflite";
-//const gchar tflite_model[] = "ssd_mobilenet_v1_fpn_coco.tflite";
-//#define MODEL_WIDTH     640
-//#define MODEL_HEIGHT    640
-//#define DETECTION_MAX   51150
-//const gchar tflite_box_priors[] = "box_priors-ssd_fpn.txt";
-
-#define tflite_label "coco_labels_list.txt"
-
-#define str_video_file "sample_1080p.mp4"
 
 /**
  * @brief Max objects in display.
@@ -111,7 +94,8 @@ typedef struct
 
 extern AppData g_app;
 
-gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *tflite_model);
+gboolean init_test(int argc, char ** argv);
+gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *labels_file, const gchar *tflite_model, const gchar *tflite_box_priors_file);
 void free_app_data (void);
 GstFlowReturn new_preroll_cb (GstElement * element, gpointer user_data);
 GstFlowReturn new_sample_cb (GstElement * element, gpointer user_data);
