@@ -28,16 +28,11 @@ main (int argc, char ** argv)
   g_app.pipeline = NULL;
   g_app.num_detections = 0;
   g_mutex_init (&g_app.mutex);
-
-  _check_cond_err (tflite_init_info (&g_app.tflite_info, tflite_model_path, tflite_model));
-
   /* init gstreamer */
   gst_init (&argc, &argv);
 
   /* main loop */
   g_app.loop = g_main_loop_new (NULL, FALSE);
-  _check_cond_err (g_app.loop != NULL);
-
   /* init pipeline */
   str_pipeline =
       g_strdup_printf
@@ -73,12 +68,10 @@ main (int argc, char ** argv)
   g_app.pipeline = gst_parse_launch (str_pipeline, NULL);
   GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(g_app.pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline");
   g_free (str_pipeline);
-  _check_cond_err (g_app.pipeline != NULL);
-
+  CHECK_COND_ERR (g_app.pipeline != NULL);
   /* bus and message callback */
   g_app.bus = gst_element_get_bus (g_app.pipeline);
-  _check_cond_err (g_app.bus != NULL);
-
+  CHECK_COND_ERR (g_app.bus != NULL);
   gst_bus_add_signal_watch (g_app.bus);
   g_signal_connect (g_app.bus, "message", G_CALLBACK (bus_message_cb), NULL);
   /* tensor sink signal : new data callback */

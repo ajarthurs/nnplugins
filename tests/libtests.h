@@ -28,7 +28,7 @@
 /**
  * @brief Macro to check error case.
  */
-#define _check_cond_err(cond) \
+#define CHECK_COND_ERR(cond) \
   do { \
     if (!(cond)) { \
       GST_ERROR ("app failed! [line : %d]", __LINE__); \
