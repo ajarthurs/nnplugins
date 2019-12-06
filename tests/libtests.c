@@ -11,7 +11,6 @@ gboolean
 tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *tflite_model)
 {
   g_return_val_if_fail (tflite_info != NULL, FALSE);
-
   tflite_info->model_path = g_strdup_printf ("%s/%s", path, tflite_model);
   tflite_info->label_path = g_strdup_printf ("%s/%s", path, tflite_label);
   tflite_info->box_prior_path =
@@ -32,7 +31,6 @@ tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar
 
   g_return_val_if_fail (tflite_load_box_priors (tflite_info->box_prior_path, tflite_info->box_priors), FALSE);
   g_return_val_if_fail (tflite_load_labels (tflite_info->label_path, tflite_info->labels), FALSE);
-
   return TRUE;
 }
 
@@ -70,7 +68,6 @@ free_app_data (void)
     g_main_loop_unref (g_app.loop);
     g_app.loop = NULL;
   }
-
   if (g_app.bus) {
     gst_bus_remove_signal_watch (g_app.bus);
     gst_object_unref (g_app.bus);
@@ -81,17 +78,14 @@ free_app_data (void)
     gst_object_unref (g_app.appsink);
     g_app.appsink = NULL;
   }
-
   if (g_app.tensor_res) {
     gst_object_unref (g_app.tensor_res);
     g_app.tensor_res = NULL;
   }
-
   if (g_app.pipeline) {
     gst_object_unref (g_app.pipeline);
     g_app.pipeline = NULL;
   }
-
   tflite_free_info (&g_app.tflite_info);
   g_mutex_clear (&g_app.mutex);
 }
@@ -104,22 +98,17 @@ parse_err_message (GstMessage * message)
 {
   gchar *debug;
   GError *error;
-
   g_return_if_fail (message != NULL);
-
   switch (GST_MESSAGE_TYPE (message)) {
     case GST_MESSAGE_ERROR:
       gst_message_parse_error (message, &error, &debug);
       break;
-
     case GST_MESSAGE_WARNING:
       gst_message_parse_warning (message, &error, &debug);
       break;
-
     default:
       return;
   }
-
   gst_object_default_error (GST_MESSAGE_SRC (message), error, debug);
   g_error_free (error);
   g_free (debug);
@@ -134,7 +123,6 @@ parse_qos_message (GstMessage * message)
   GstFormat format;
   guint64 processed;
   guint64 dropped;
-
   gst_message_parse_qos_stats (message, &format, &processed, &dropped);
   _print_log ("%s: format[%d] processed[%" G_GUINT64_FORMAT "] dropped[%"
       G_GUINT64_FORMAT "]", GST_MESSAGE_SRC_NAME(message), format, processed, dropped);
@@ -233,19 +221,14 @@ set_window_title (const gchar * name, const gchar * title)
   GstTagList *tags;
   GstPad *sink_pad;
   GstElement *element;
-
   element = gst_bin_get_by_name (GST_BIN (g_app.pipeline), name);
-
   g_return_if_fail (element != NULL);
-
   sink_pad = gst_element_get_static_pad (element, "sink");
-
   if (sink_pad) {
     tags = gst_tag_list_new (GST_TAG_TITLE, title, NULL);
     gst_pad_send_event (sink_pad, gst_event_new_tag (tags));
     gst_object_unref (sink_pad);
   }
-
   gst_object_unref (element);
 }
 
@@ -256,7 +239,6 @@ void
 prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data)
 {
   CairoOverlayState *state = &g_app.overlay_state;
-
   state->valid = gst_video_info_from_caps (&state->vinfo, caps);
 }
 
@@ -277,14 +259,11 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
 
   g_return_if_fail (state->valid);
   g_return_if_fail (g_app.running);
-
   g_mutex_lock (&g_app.mutex);
-
   /* set font props */
   cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
       CAIRO_FONT_WEIGHT_BOLD);
   cairo_set_font_size (cr, 20.0);
-
   /* draw FPS */
   snprintf(str, 32, "FPS=%.2f", g_app.fps);
   cairo_move_to (cr, 50, 50);
@@ -295,20 +274,17 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
   cairo_set_line_width (cr, .3);
   cairo_stroke (cr);
   cairo_fill_preserve (cr);
-
+  /* iterate over detections */
   for (i = 0; i < g_app.num_detections; i++) {
     DetectedObject *iter = &(g_app.detected_objects[i]);
     const gchar *label = g_app.tflite_info.labels[iter->class_id];
-
     x = iter->x;
     y = iter->y;
     width = iter->width;
     height = iter->height;
-
     /* skip if out-of-bounds */
     if(x < 0 || y < 0 || (x+width+1) > VIDEO_WIDTH || (y+height+1) > VIDEO_HEIGHT)
       continue;
-
     /* draw rectangle */
     _print_log("draw_overlay_cb: drawing rectangle");
     cairo_rectangle (cr, x, y, width, height);
@@ -316,7 +292,6 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
     cairo_set_line_width (cr, 1.5);
     cairo_stroke (cr);
     cairo_fill_preserve (cr);
-
     /* draw title */
     cairo_move_to (cr, x + 5, y + 25);
     cairo_text_path (cr, label);
@@ -326,7 +301,6 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
     cairo_set_line_width (cr, .3);
     cairo_stroke (cr);
     cairo_fill_preserve (cr);
-
     if (++drawed >= MAX_OBJECT_DETECTION) {
       /* max objects drawed */
       break;
@@ -360,11 +334,9 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
         }
       }
     } break;
-
     case GST_MESSAGE_ASYNC_DONE: {
       _print_log ("%s: received async-done message", GST_MESSAGE_SRC_NAME(message));
     } break;
-
     case GST_MESSAGE_STEP_DONE: {
       _print_log ("%s: received step-done message", GST_MESSAGE_SRC_NAME(message));
       if (GST_MESSAGE_SRC(message) == (GstObject *)g_app.appsink) {
@@ -387,27 +359,22 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
         }
       }
     } break;
-
     case GST_MESSAGE_EOS:
       _print_log ("%s: received eos message", GST_MESSAGE_SRC_NAME(message));
       g_main_loop_quit (g_app.loop);
       break;
-
     case GST_MESSAGE_ERROR:
       _print_log ("%s: received error message", GST_MESSAGE_SRC_NAME(message));
       parse_err_message (message);
       g_main_loop_quit (g_app.loop);
       break;
-
     case GST_MESSAGE_WARNING:
       _print_log ("%s: received warning message", GST_MESSAGE_SRC_NAME(message));
       parse_err_message (message);
       break;
-
     case GST_MESSAGE_QOS:
       parse_qos_message (message);
       break;
-
     default:
       _print_log ("%s: received unhandled message: %s",
           GST_MESSAGE_SRC_NAME(message),

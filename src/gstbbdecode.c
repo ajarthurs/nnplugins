@@ -65,7 +65,6 @@ static void gst_bbdecode_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec);
 static void gst_bbdecode_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec);
-
 static gboolean gst_bbdecode_sink_event (GstPad * pad, GstObject * parent, GstEvent * event);
 static GstFlowReturn gst_bbdecode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf);
 static GstBuffer *gst_bbdecode_process (GstBBDecode *filter, GstBuffer *inbuf);
@@ -113,18 +112,17 @@ gst_bbdecode_class_init (GstBBDecodeClass * klass)
 static void
 gst_bbdecode_init (GstBBDecode * filter)
 {
+  /* sink-pad */
   filter->sinkpad = gst_pad_new_from_static_template (&sink_factory, "sink");
-  gst_pad_set_event_function (filter->sinkpad,
-                              GST_DEBUG_FUNCPTR(gst_bbdecode_sink_event));
-  gst_pad_set_chain_function (filter->sinkpad,
-                              GST_DEBUG_FUNCPTR(gst_bbdecode_chain));
+  gst_pad_set_event_function (filter->sinkpad, GST_DEBUG_FUNCPTR(gst_bbdecode_sink_event));
+  gst_pad_set_chain_function (filter->sinkpad, GST_DEBUG_FUNCPTR(gst_bbdecode_chain));
   GST_PAD_SET_PROXY_CAPS (filter->sinkpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->sinkpad);
-
+  /* src-pad */
   filter->srcpad = gst_pad_new_from_static_template (&src_factory, "src");
   GST_PAD_SET_PROXY_CAPS (filter->srcpad);
   gst_element_add_pad (GST_ELEMENT (filter), filter->srcpad);
-
+  /* properties */
   filter->silent = FALSE;
 }
 
@@ -133,7 +131,6 @@ gst_bbdecode_set_property (GObject * object, guint prop_id,
     const GValue * value, GParamSpec * pspec)
 {
   GstBBDecode *filter = GST_BBDECODE (object);
-
   switch (prop_id) {
     case PROP_LABELS:
       filter->labels_path = g_value_get_string (value);
@@ -154,7 +151,6 @@ gst_bbdecode_get_property (GObject * object, guint prop_id,
     GValue * value, GParamSpec * pspec)
 {
   GstBBDecode *filter = GST_BBDECODE (object);
-
   switch (prop_id) {
     case PROP_LABELS:
       g_value_set_string (value, filter->labels_path);
@@ -168,28 +164,22 @@ gst_bbdecode_get_property (GObject * object, guint prop_id,
   }
 }
 
-/* GstElement vmethod implementations */
-
-/* this function handles sink events */
+/*
+ * this function handles sink events
+ */
 static gboolean
 gst_bbdecode_sink_event (GstPad * pad, GstObject * parent, GstEvent * event)
 {
   GstBBDecode *filter;
   gboolean ret;
-
   filter = GST_BBDECODE (parent);
-
-  GST_LOG_OBJECT (filter, "Received %s event: %" GST_PTR_FORMAT,
-      GST_EVENT_TYPE_NAME (event), event);
-
+  GST_LOG_OBJECT (filter, "Received %s event: %" GST_PTR_FORMAT, GST_EVENT_TYPE_NAME (event), event);
   switch (GST_EVENT_TYPE (event)) {
     case GST_EVENT_CAPS:
     {
       GstCaps * caps;
-
       gst_event_parse_caps (event, &caps);
       /* do something with the caps */
-
       /* and forward */
       ret = gst_pad_event_default (pad, parent, event);
       break;
@@ -223,8 +213,7 @@ gst_bbdecode_chain (GstPad * pad, GstObject * parent, GstBuffer * buf)
 }
 
 /*
- * this function decodes and scales objects given the tensor
- * returns annotated buffer on success, NULL on error
+ * this function decodes and scales objects given the tensor returns annotated buffer on success, NULL on error
  */
 static GstBuffer *
 gst_bbdecode_process (GstBBDecode *filter, GstBuffer *inbuf)
@@ -296,11 +285,8 @@ bbdecode_init (GstPlugin * bbdecode)
    *
    * exchange the string 'Template bbdecode' with your description
    */
-  GST_DEBUG_CATEGORY_INIT (gst_bbdecode_debug, "bbdecode",
-      0, BBDECODE_DESC);
-
-  return gst_element_register (bbdecode, "bbdecode", GST_RANK_NONE,
-      GST_TYPE_BBDECODE);
+  GST_DEBUG_CATEGORY_INIT (gst_bbdecode_debug, "bbdecode", 0, BBDECODE_DESC);
+  return gst_element_register (bbdecode, "bbdecode", GST_RANK_NONE, GST_TYPE_BBDECODE);
 }
 
 /* PACKAGE: this is usually set by autotools depending on some _INIT macro

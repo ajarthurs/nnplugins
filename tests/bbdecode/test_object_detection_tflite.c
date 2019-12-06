@@ -17,7 +17,6 @@ AppData g_app;
 int
 main (int argc, char ** argv)
 {
-
   gchar *str_pipeline;
 
   _print_log ("start app..");
@@ -82,7 +81,6 @@ main (int argc, char ** argv)
 
   gst_bus_add_signal_watch (g_app.bus);
   g_signal_connect (g_app.bus, "message", G_CALLBACK (bus_message_cb), NULL);
-
   /* tensor sink signal : new data callback */
   g_app.appsink = gst_bin_get_by_name(GST_BIN (g_app.pipeline), "appsink");
   if (!FRAME_STEP) {
@@ -90,23 +88,17 @@ main (int argc, char ** argv)
     g_signal_connect (g_app.appsink, "new-sample", G_CALLBACK (new_sample_cb), NULL);
     g_signal_connect (g_app.appsink, "new-preroll", G_CALLBACK (new_preroll_cb), NULL);
   }
-
   /* cairo overlay */
   g_app.tensor_res = gst_bin_get_by_name (GST_BIN (g_app.pipeline), "tensor_res");
   g_signal_connect (g_app.tensor_res, "draw", G_CALLBACK (draw_overlay_cb), NULL);
   g_signal_connect (g_app.tensor_res, "caps-changed", G_CALLBACK (prepare_overlay_cb), NULL);
-
   /* start pipeline */
   if (FRAME_STEP)
     gst_element_set_state (g_app.pipeline, GST_STATE_PAUSED);
   else // normal playback
     gst_element_set_state (g_app.pipeline, GST_STATE_PLAYING);
   g_app.running = TRUE;
-
-  /* set window title */
   set_window_title ("img_tensor", "NNStreamer Example");
-
-  /* run main loop */
   g_main_loop_run (g_app.loop);
 
   /* quit when received eos or error message */
