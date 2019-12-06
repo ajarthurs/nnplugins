@@ -348,7 +348,7 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
   switch (GST_MESSAGE_TYPE (message)) {
     case GST_MESSAGE_STREAM_START: {
       GST_INFO_OBJECT (bus, "received stream-start message");
-      if (FRAME_STEP) {
+      if (g_app.frame_stepping) {
         if (gst_element_send_event(
               g_app.pipeline,
               gst_event_new_step(

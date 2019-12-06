@@ -26,6 +26,7 @@ int
 main (int argc, char ** argv)
 {
   gchar *str_pipeline;
+  g_app.frame_stepping = TRUE;
   CHECK_COND_ERR(init_test(argc, argv));
   GST_DEBUG_CATEGORY_INIT (myapp, "via-nnplugins-test", 0, "Test object detection with a video file");
   CHECK_COND_ERR (tflite_init_info (&g_app.tflite_info, TEST_DATA_PATH, TEST_COCO_LABELS_FILE, TFLITE_MODEL_FILE, TFLITE_BOX_PRIORS_FILE));
@@ -72,7 +73,7 @@ main (int argc, char ** argv)
   g_signal_connect (g_app.bus, "message", G_CALLBACK (bus_message_cb), NULL);
   /* tensor sink signal : new data callback */
   g_app.appsink = gst_bin_get_by_name(GST_BIN (g_app.pipeline), "appsink");
-  if (!FRAME_STEP) {
+  if (!g_app.frame_stepping) {
     //g_signal_connect (g_app.appsink, "new-data", G_CALLBACK (new_data_cb), NULL);
     g_signal_connect (g_app.appsink, "new-sample", G_CALLBACK (new_sample_cb), NULL);
     g_signal_connect (g_app.appsink, "new-preroll", G_CALLBACK (new_preroll_cb), NULL);
@@ -82,7 +83,7 @@ main (int argc, char ** argv)
   g_signal_connect (g_app.tensor_res, "draw", G_CALLBACK (draw_overlay_cb), NULL);
   g_signal_connect (g_app.tensor_res, "caps-changed", G_CALLBACK (prepare_overlay_cb), NULL);
   /* start pipeline */
-  if (FRAME_STEP)
+  if (g_app.frame_stepping)
     gst_element_set_state (g_app.pipeline, GST_STATE_PAUSED);
   else // normal playback
     gst_element_set_state (g_app.pipeline, GST_STATE_PLAYING);

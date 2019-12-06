@@ -36,10 +36,6 @@
     } \
   } while (0)
 
-/**
- * Playback video w.r.t. the NN model's latency.
- */
-#define FRAME_STEP TRUE
 #define TEST_DATA_PATH "./tests/testdata"
 #define TEST_VIDEO_FILE "sample_1080p.mp4"
 #define TEST_COCO_LABELS_FILE "coco_labels_list.txt"
@@ -82,6 +78,7 @@ typedef struct
   GstBus *bus; /**< gst bus for data pipeline */
   gboolean running; /**< true when app is running */
   GMutex mutex; /**< mutex for processing */
+  gboolean frame_stepping; /**< whether or not to time the pipeline by model latency >**/
   TFLiteModelInfo tflite_info; /**< tflite model info */
   CairoOverlayState overlay_state;
   guint num_detections;
