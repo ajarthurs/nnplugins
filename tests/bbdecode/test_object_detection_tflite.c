@@ -92,11 +92,12 @@ main (int argc, char ** argv)
   /* quit when received eos or error message */
   g_app.running = FALSE;
   gst_element_set_state (g_app.pipeline, GST_STATE_NULL);
-
-  g_usleep (200 * 1000);
-
+  free_app_data ();
+  GST_INFO ("close app..");
+  return 0;
 
 error:
   free_app_data ();
-  return 0;
+  GST_ERROR ("See above for error.");
+  return 1;
 }

@@ -73,17 +73,14 @@ static void
 tflite_free_info (TFLiteModelInfo * tflite_info)
 {
   g_return_if_fail (tflite_info != NULL);
-
   if (tflite_info->model_path) {
     g_free (tflite_info->model_path);
     tflite_info->model_path = NULL;
   }
-
   if (tflite_info->label_path) {
     g_free (tflite_info->label_path);
     tflite_info->label_path = NULL;
   }
-
   if (tflite_info->box_prior_path) {
     g_free (tflite_info->box_prior_path);
     tflite_info->box_prior_path = NULL;
@@ -105,7 +102,6 @@ free_app_data (void)
     gst_object_unref (g_app.bus);
     g_app.bus = NULL;
   }
-
   if (g_app.appsink) {
     gst_object_unref (g_app.appsink);
     g_app.appsink = NULL;
