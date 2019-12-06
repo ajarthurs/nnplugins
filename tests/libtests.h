@@ -26,17 +26,12 @@
 #endif
 
 /**
- * @brief Macro for debug message.
- */
-#define _print_log(...) if (DBG) g_message (__VA_ARGS__)
-
-/**
  * @brief Macro to check error case.
  */
 #define _check_cond_err(cond) \
   do { \
     if (!(cond)) { \
-      _print_log ("app failed! [line : %d]", __LINE__); \
+      GST_ERROR ("app failed! [line : %d]", __LINE__); \
       goto error; \
     } \
   } while (0)

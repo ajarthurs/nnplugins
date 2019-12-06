@@ -17,15 +17,15 @@ tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar
       g_strdup_printf ("%s/%s", path, tflite_box_priors);
 
   if (!g_file_test (tflite_info->model_path, G_FILE_TEST_IS_REGULAR)) {
-    g_critical ("the file of model_path is not valid: %s\n", tflite_info->model_path);
+    GST_ERROR ("the file of model_path is not valid: %s\n", tflite_info->model_path);
     return FALSE;
   }
   if (!g_file_test (tflite_info->label_path, G_FILE_TEST_IS_REGULAR)) {
-    g_critical ("the file of label_path is not valid%s\n", tflite_info->label_path);
+    GST_ERROR ("the file of label_path is not valid%s\n", tflite_info->label_path);
     return FALSE;
   }
   if (!g_file_test (tflite_info->box_prior_path, G_FILE_TEST_IS_REGULAR)) {
-    g_critical ("the file of box_prior_path is not valid%s\n", tflite_info->box_prior_path);
+    GST_ERROR ("the file of box_prior_path is not valid%s\n", tflite_info->box_prior_path);
     return FALSE;
   }
 
@@ -124,7 +124,7 @@ parse_qos_message (GstMessage * message)
   guint64 processed;
   guint64 dropped;
   gst_message_parse_qos_stats (message, &format, &processed, &dropped);
-  _print_log ("%s: format[%d] processed[%" G_GUINT64_FORMAT "] dropped[%"
+  GST_LOG ("%s: format[%d] processed[%" G_GUINT64_FORMAT "] dropped[%"
       G_GUINT64_FORMAT "]", GST_MESSAGE_SRC_NAME(message), format, processed, dropped);
 }
 
@@ -137,7 +137,7 @@ new_data_cb2 (GstElement * element, GstBuffer * buffer, gpointer user_data)
   guint i = 0;
   clock_t now, tdelta;
   gpointer state = NULL;
-  _print_log("called new_data_cb2");
+  GST_LOG_OBJECT(element, "called new_data_cb2");
   GstVideoRegionOfInterestMeta *meta;
   g_mutex_lock (&g_app.mutex);
   g_app.num_detections = 0;
@@ -158,7 +158,7 @@ new_data_cb2 (GstElement * element, GstBuffer * buffer, gpointer user_data)
     o->height = (guint)(meta->h * hscale);
     o->class_id = label_id;
     o->score = score;
-    _print_log("    new_data_cb2: got detection %u: %s (%u): %.2f%%: (%u, %u): %u x %u",
+    GST_LOG_OBJECT(element, "    new_data_cb2: got detection %u: %s (%u): %.2f%%: (%u, %u): %u x %u",
       i,
       label,
       label_id,
@@ -190,7 +190,7 @@ new_preroll_cb (GstElement * element, gpointer user_data)
 {
   GstSample *sample;
   sample = gst_app_sink_pull_preroll((GstAppSink *)element);
-  _print_log("fetched sample from preroll");
+  GST_LOG_OBJECT(element, "fetched sample from preroll");
   new_data_cb2(element, gst_sample_get_buffer(sample), user_data);
   gst_sample_unref(sample);
   return GST_FLOW_OK;
@@ -204,7 +204,7 @@ new_sample_cb (GstElement * element, gpointer user_data)
 {
   GstSample *sample;
   sample = gst_app_sink_pull_sample((GstAppSink *)element);
-  _print_log("fetched sample");
+  GST_LOG_OBJECT(element, "fetched sample");
   new_data_cb2(element, gst_sample_get_buffer(sample), user_data);
   gst_sample_unref(sample);
   return GST_FLOW_OK;
@@ -254,9 +254,7 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
   guint drawed = 0;
   guint i;
   char str[32];
-
-  _print_log("called draw_overlay_cb");
-
+  GST_LOG_OBJECT(overlay, "called draw_overlay_cb");
   g_return_if_fail (state->valid);
   g_return_if_fail (g_app.running);
   g_mutex_lock (&g_app.mutex);
@@ -286,7 +284,7 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
     if(x < 0 || y < 0 || (x+width+1) > VIDEO_WIDTH || (y+height+1) > VIDEO_HEIGHT)
       continue;
     /* draw rectangle */
-    _print_log("draw_overlay_cb: drawing rectangle");
+    GST_LOG_OBJECT(overlay, "draw_overlay_cb: drawing rectangle");
     cairo_rectangle (cr, x, y, width, height);
     cairo_set_source_rgb (cr, 1, 0, 0);
     cairo_set_line_width (cr, 1.5);
@@ -317,7 +315,7 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
 {
   switch (GST_MESSAGE_TYPE (message)) {
     case GST_MESSAGE_STREAM_START: {
-      _print_log ("%s: received stream-start message", GST_MESSAGE_SRC_NAME(message));
+      GST_INFO_OBJECT (bus, "received stream-start message");
       if (FRAME_STEP) {
         if (gst_element_send_event(
               g_app.pipeline,
@@ -328,17 +326,19 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
                 TRUE,               // flush
                 FALSE               // intermediate
                 ))) {
-          _print_log("sent step event");
+          GST_INFO_OBJECT(bus, "sent first step event");
         } else {
-          g_warning("failed to send step event");
+          GST_WARNING_OBJECT(bus, "failed to send step event");
         }
+      } else { // Normal playback
+        GST_INFO_OBJECT(bus, "started stream for normal playback");
       }
     } break;
     case GST_MESSAGE_ASYNC_DONE: {
-      _print_log ("%s: received async-done message", GST_MESSAGE_SRC_NAME(message));
+      GST_LOG_OBJECT (bus, "%s: received async-done message", GST_MESSAGE_SRC_NAME(message));
     } break;
     case GST_MESSAGE_STEP_DONE: {
-      _print_log ("%s: received step-done message", GST_MESSAGE_SRC_NAME(message));
+      GST_LOG_OBJECT (bus, "%s: received step-done message", GST_MESSAGE_SRC_NAME(message));
       if (GST_MESSAGE_SRC(message) == (GstObject *)g_app.appsink) {
         new_preroll_cb(g_app.appsink, user_data);
         //gst_element_set_state (g_app.pipeline, GST_STATE_PLAYING);
@@ -353,30 +353,30 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
                 TRUE,               // flush
                 FALSE               // intermediate
                 ))) {
-          _print_log("sent step event");
+          GST_LOG_OBJECT(bus, "sent step event");
         } else {
-          g_warning("failed to send step event");
+          GST_WARNING_OBJECT(bus, "failed to send step event");
         }
       }
     } break;
     case GST_MESSAGE_EOS:
-      _print_log ("%s: received eos message", GST_MESSAGE_SRC_NAME(message));
+      GST_INFO_OBJECT (bus, "received eos message");
       g_main_loop_quit (g_app.loop);
       break;
     case GST_MESSAGE_ERROR:
-      _print_log ("%s: received error message", GST_MESSAGE_SRC_NAME(message));
+      GST_ERROR_OBJECT (bus, "received error message");
       parse_err_message (message);
       g_main_loop_quit (g_app.loop);
       break;
     case GST_MESSAGE_WARNING:
-      _print_log ("%s: received warning message", GST_MESSAGE_SRC_NAME(message));
+      GST_WARNING_OBJECT (bus, "received warning message");
       parse_err_message (message);
       break;
     case GST_MESSAGE_QOS:
       parse_qos_message (message);
       break;
     default:
-      _print_log ("%s: received unhandled message: %s",
+      GST_LOG_OBJECT (bus, "%s: received unhandled message: %s",
           GST_MESSAGE_SRC_NAME(message),
           GST_MESSAGE_TYPE_NAME(message)
           );

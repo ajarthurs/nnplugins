@@ -5,6 +5,8 @@
 #include "../libtests.h"
 
 #define tflite_model "ssd_mobilenet_v1_coco_postprocessed_uint8.tflite"
+GST_DEBUG_CATEGORY_STATIC(myapp);
+#define GST_CAT_DEFAULT myapp
 
 /**
 * @brief Data for pipeline and result.
@@ -18,9 +20,6 @@ int
 main (int argc, char ** argv)
 {
   gchar *str_pipeline;
-
-  _print_log ("start app..");
-
   /* init app variable */
   g_app.running = FALSE;
   g_app.loop = NULL;
@@ -68,8 +67,7 @@ main (int argc, char ** argv)
       //MODEL_WIDTH, MODEL_HEIGHT,
       //DETECTION_MAX, BOX_SIZE, DETECTION_MAX, LABEL_SIZE);
 
-  _print_log ("%s\n", str_pipeline);
-
+  GST_INFO ("%s", str_pipeline);
   g_app.pipeline = gst_parse_launch (str_pipeline, NULL);
   GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(g_app.pipeline), GST_DEBUG_GRAPH_SHOW_ALL, "pipeline");
   g_free (str_pipeline);
@@ -109,8 +107,6 @@ main (int argc, char ** argv)
 
 
 error:
-  _print_log ("close app..");
-
   free_app_data ();
   return 0;
 }
