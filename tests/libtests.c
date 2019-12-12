@@ -2,7 +2,7 @@
  * @brief Library for unit tests.
  */
 
-#include "../libtests.h"
+#include "libtests.h"
 
 GST_DEBUG_CATEGORY_STATIC(libtests);
 #define GST_CAT_DEFAULT libtests
