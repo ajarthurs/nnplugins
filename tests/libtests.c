@@ -159,13 +159,13 @@ parse_qos_message (GstMessage * message)
 /**
  * @brief Callback for tensor sink signal.
  */
-static void
-new_data_cb2 (GstElement * element, GstBuffer * buffer, gpointer user_data)
+void
+handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
 {
   guint i = 0;
   clock_t now, tdelta;
   gpointer state = NULL;
-  GST_LOG_OBJECT(element, "called new_data_cb2");
+  GST_LOG_OBJECT(element, "called handle_bb_sample");
   GstVideoRegionOfInterestMeta *meta;
   g_mutex_lock (&g_app.mutex);
   g_app.num_detections = 0;
@@ -186,7 +186,7 @@ new_data_cb2 (GstElement * element, GstBuffer * buffer, gpointer user_data)
     o->height = (guint)(meta->h * hscale);
     o->class_id = label_id;
     o->score = score;
-    GST_LOG_OBJECT(element, "    new_data_cb2: got detection %u: %s (%u): %.2f%%: (%u, %u): %u x %u",
+    GST_LOG_OBJECT(element, "    handle_bb_sample: got detection %u: %s (%u): %.2f%%: (%u, %u): %u x %u",
       i,
       label,
       label_id,
@@ -219,7 +219,7 @@ new_preroll_cb (GstElement * element, gpointer user_data)
   GstSample *sample;
   sample = gst_app_sink_pull_preroll((GstAppSink *)element);
   GST_LOG_OBJECT(element, "fetched sample from preroll");
-  new_data_cb2(element, gst_sample_get_buffer(sample), user_data);
+  g_app.sample_handler(element, gst_sample_get_buffer(sample), user_data);
   gst_sample_unref(sample);
   return GST_FLOW_OK;
 }
@@ -233,7 +233,7 @@ new_sample_cb (GstElement * element, gpointer user_data)
   GstSample *sample;
   sample = gst_app_sink_pull_sample((GstAppSink *)element);
   GST_LOG_OBJECT(element, "fetched sample");
-  new_data_cb2(element, gst_sample_get_buffer(sample), user_data);
+  g_app.sample_handler(element, gst_sample_get_buffer(sample), user_data);
   gst_sample_unref(sample);
   return GST_FLOW_OK;
 }

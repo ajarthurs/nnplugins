@@ -94,6 +94,7 @@ extern AppData g_app;
 gboolean init_test(int argc, char ** argv);
 gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *labels_file, const gchar *tflite_model, const gchar *tflite_box_priors_file);
 void free_app_data (void);
+void handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data);
 GstFlowReturn new_preroll_cb (GstElement * element, gpointer user_data);
 GstFlowReturn new_sample_cb (GstElement * element, gpointer user_data);
 void set_window_title (const gchar * name, const gchar * title);
