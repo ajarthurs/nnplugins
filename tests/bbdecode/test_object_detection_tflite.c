@@ -26,6 +26,7 @@ main (int argc, char ** argv)
   gchar *str_pipeline;
   GstElement *e;
   g_app.frame_stepping = FALSE;
+  g_app.sample_handler = &handle_bb_sample;
   CHECK_COND_ERR(init_test(argc, argv));
   GST_DEBUG_CATEGORY_INIT (myapp, "via-nnplugins-test", 0, "Test object detection with a video file");
   CHECK_COND_ERR (tflite_init_info (&g_app.tflite_info, TEST_DATA_PATH, TEST_COCO_LABELS_FILE, TFLITE_MODEL_FILE, NULL));

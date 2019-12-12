@@ -68,6 +68,9 @@ typedef struct
   const gchar *labels[LABEL_SIZE]; /**< list of loaded labels */
 } TFLiteModelInfo;
 
+// SampleCallback signature: processes one sample/frame per call.
+typedef void (*SampleCallback) (GstElement * element, GstBuffer * buffer, gpointer user_data);
+
 /**
  * @brief Data structure for app.
  */
@@ -80,6 +83,7 @@ typedef struct
   GMutex mutex; /**< mutex for processing */
   gboolean frame_stepping; /**< whether or not to time the pipeline by model latency >**/
   TFLiteModelInfo tflite_info; /**< tflite model info */
+  SampleCallback sample_handler; /**< callback that processes each sample/frame >**/
   CairoOverlayState overlay_state;
   guint num_detections;
   DetectedObject detected_objects[MAX_OBJECT_DETECTION];
