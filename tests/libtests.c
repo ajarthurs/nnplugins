@@ -48,15 +48,18 @@ tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar
     tflite_info->box_prior_path = g_strdup_printf ("%s/%s", path, tflite_box_priors_file);
   else
     tflite_info->box_prior_path = NULL;
-  if (!g_file_test (tflite_info->model_path, G_FILE_TEST_IS_REGULAR)) {
+  if (!g_file_test (tflite_info->model_path, G_FILE_TEST_IS_REGULAR))
+  {
     GST_ERROR ("the file of model_path is not valid: %s\n", tflite_info->model_path);
     return FALSE;
   }
-  if (!g_file_test (tflite_info->label_path, G_FILE_TEST_IS_REGULAR)) {
+  if (!g_file_test (tflite_info->label_path, G_FILE_TEST_IS_REGULAR))
+  {
     GST_ERROR ("the file of label_path is not valid%s\n", tflite_info->label_path);
     return FALSE;
   }
-  if (tflite_box_priors_file && !g_file_test (tflite_info->box_prior_path, G_FILE_TEST_IS_REGULAR)) {
+  if (tflite_box_priors_file && !g_file_test (tflite_info->box_prior_path, G_FILE_TEST_IS_REGULAR))
+  {
     GST_ERROR ("the file of box_prior_path is not valid%s\n", tflite_info->box_prior_path);
     return FALSE;
   }
@@ -73,15 +76,18 @@ static void
 tflite_free_info (TFLiteModelInfo * tflite_info)
 {
   g_return_if_fail (tflite_info != NULL);
-  if (tflite_info->model_path) {
+  if (tflite_info->model_path)
+  {
     g_free (tflite_info->model_path);
     tflite_info->model_path = NULL;
   }
-  if (tflite_info->label_path) {
+  if (tflite_info->label_path)
+  {
     g_free (tflite_info->label_path);
     tflite_info->label_path = NULL;
   }
-  if (tflite_info->box_prior_path) {
+  if (tflite_info->box_prior_path)
+  {
     g_free (tflite_info->box_prior_path);
     tflite_info->box_prior_path = NULL;
   }
@@ -93,24 +99,29 @@ tflite_free_info (TFLiteModelInfo * tflite_info)
 void
 free_app_data (void)
 {
-  if (g_app.loop) {
+  if (g_app.loop)
+  {
     g_main_loop_unref (g_app.loop);
     g_app.loop = NULL;
   }
-  if (g_app.bus) {
+  if (g_app.bus)
+  {
     gst_bus_remove_signal_watch (g_app.bus);
     gst_object_unref (g_app.bus);
     g_app.bus = NULL;
   }
-  if (g_app.appsink) {
+  if (g_app.appsink)
+  {
     gst_object_unref (g_app.appsink);
     g_app.appsink = NULL;
   }
-  if (g_app.tensor_res) {
+  if (g_app.tensor_res)
+  {
     gst_object_unref (g_app.tensor_res);
     g_app.tensor_res = NULL;
   }
-  if (g_app.pipeline) {
+  if (g_app.pipeline)
+  {
     gst_object_unref (g_app.pipeline);
     g_app.pipeline = NULL;
   }
@@ -169,7 +180,8 @@ handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
   GstVideoRegionOfInterestMeta *meta;
   g_mutex_lock (&g_app.mutex);
   g_app.num_detections = 0;
-  while((meta = (GstVideoRegionOfInterestMeta *)gst_buffer_iterate_meta(buffer, &state)) && i<MAX_OBJECT_DETECTION) {
+  while((meta = (GstVideoRegionOfInterestMeta *)gst_buffer_iterate_meta(buffer, &state)) && i<MAX_OBJECT_DETECTION)
+  {
     gdouble score;
     GstStructure *s = gst_video_region_of_interest_meta_get_param(meta, "detection");
     const gchar *label = gst_structure_get_string(s, "label_name");
@@ -252,7 +264,8 @@ set_window_title (const gchar * name, const gchar * title)
   element = gst_bin_get_by_name (GST_BIN (g_app.pipeline), name);
   g_return_if_fail (element != NULL);
   sink_pad = gst_element_get_static_pad (element, "sink");
-  if (sink_pad) {
+  if (sink_pad)
+  {
     tags = gst_tag_list_new (GST_TAG_TITLE, title, NULL);
     gst_pad_send_event (sink_pad, gst_event_new_tag (tags));
     gst_object_unref (sink_pad);
@@ -274,8 +287,7 @@ prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data)
  * @brief Callback to draw the overlay.
  */
 void
-draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
-    guint64 duration, gpointer user_data)
+draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
 {
   CairoOverlayState *state = &g_app.overlay_state;
   gfloat x, y, width, height;
@@ -287,8 +299,7 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
   g_return_if_fail (g_app.running);
   g_mutex_lock (&g_app.mutex);
   /* set font props */
-  cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
-      CAIRO_FONT_WEIGHT_BOLD);
+  cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
   cairo_set_font_size (cr, 20.0);
   /* draw FPS */
   snprintf(str, 32, "FPS=%.2f", g_app.fps);
@@ -301,7 +312,8 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
   cairo_stroke (cr);
   cairo_fill_preserve (cr);
   /* iterate over detections */
-  for (i = 0; i < g_app.num_detections; i++) {
+  for (i = 0; i < g_app.num_detections; i++)
+  {
     DetectedObject *iter = &(g_app.detected_objects[i]);
     const gchar *label = g_app.tflite_info.labels[iter->class_id];
     x = iter->x;
@@ -327,10 +339,8 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
     cairo_set_line_width (cr, .3);
     cairo_stroke (cr);
     cairo_fill_preserve (cr);
-    if (++drawed >= MAX_OBJECT_DETECTION) {
-      /* max objects drawed */
+    if (++drawed >= MAX_OBJECT_DETECTION) // max objects drawed
       break;
-    }
   }
   g_mutex_unlock (&g_app.mutex);
 }
@@ -341,10 +351,13 @@ draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp,
 void
 bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
 {
-  switch (GST_MESSAGE_TYPE (message)) {
-    case GST_MESSAGE_STREAM_START: {
+  switch (GST_MESSAGE_TYPE (message))
+  {
+    case GST_MESSAGE_STREAM_START:
+    {
       GST_INFO_OBJECT (bus, "received stream-start message");
-      if (g_app.frame_stepping) {
+      if (g_app.frame_stepping)
+      {
         if (gst_element_send_event(
               g_app.pipeline,
               gst_event_new_step(
@@ -353,25 +366,28 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
                 1.0,                // data rate
                 TRUE,               // flush
                 FALSE               // intermediate
-                ))) {
+                )
+              )
+          )
           GST_INFO_OBJECT(bus, "sent first step event");
-        } else {
+        else
           GST_WARNING_OBJECT(bus, "failed to send step event");
-        }
-      } else { // Normal playback
-        GST_INFO_OBJECT(bus, "started stream for normal playback");
       }
-    } break;
-    case GST_MESSAGE_ASYNC_DONE: {
+      else // Normal playback
+        GST_INFO_OBJECT(bus, "started stream for normal playback");
+    }
+    break;
+    case GST_MESSAGE_ASYNC_DONE:
+    {
       GST_LOG_OBJECT (bus, "%s: received async-done message", GST_MESSAGE_SRC_NAME(message));
-    } break;
-    case GST_MESSAGE_STEP_DONE: {
+    }
+    break;
+    case GST_MESSAGE_STEP_DONE:
+    {
       GST_LOG_OBJECT (bus, "%s: received step-done message", GST_MESSAGE_SRC_NAME(message));
-      if (GST_MESSAGE_SRC(message) == (GstObject *)g_app.appsink) {
+      if (GST_MESSAGE_SRC(message) == (GstObject *)g_app.appsink)
+      {
         new_preroll_cb(g_app.appsink, user_data);
-        //gst_element_set_state (g_app.pipeline, GST_STATE_PLAYING);
-        //g_usleep(1e6);
-        //gst_element_set_state (g_app.pipeline, GST_STATE_PAUSED);
         if (gst_element_send_event(
               g_app.pipeline,
               gst_event_new_step(
@@ -380,13 +396,15 @@ bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data)
                 1.0,                // data rate
                 TRUE,               // flush
                 FALSE               // intermediate
-                ))) {
+                )
+              )
+          )
           GST_LOG_OBJECT(bus, "sent step event");
-        } else {
+        else
           GST_WARNING_OBJECT(bus, "failed to send step event");
-        }
       }
-    } break;
+    }
+    break;
     case GST_MESSAGE_EOS:
       GST_INFO_OBJECT (bus, "received eos message");
       g_main_loop_quit (g_app.loop);

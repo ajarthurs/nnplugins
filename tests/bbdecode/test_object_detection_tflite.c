@@ -24,7 +24,6 @@ int
 main (int argc, char ** argv)
 {
   gchar *str_pipeline;
-  GstElement *e;
   g_app.frame_stepping = FALSE;
   g_app.sample_handler = &handle_bb_sample;
   CHECK_COND_ERR(init_test(argc, argv));
