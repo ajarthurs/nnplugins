@@ -40,10 +40,19 @@
 #define TEST_VIDEO_FILE "sample_1080p.mp4"
 #define TEST_COCO_LABELS_FILE "coco_labels_list.txt"
 
-#define VIDEO_WIDTH     640
-#define VIDEO_HEIGHT    640
+#define VIDEO_WIDTH     513
+#define VIDEO_HEIGHT    513
+//#define VIDEO_WIDTH     640
+//#define VIDEO_HEIGHT    640
 //#define VIDEO_WIDTH     1024
 //#define VIDEO_HEIGHT    768
+
+//XXX: Depends on model but must be defined here. Need to replace AppData with a handle-based framework.
+#define SEGMAP_WIDTH   513
+#define SEGMAP_HEIGHT  513
+#define SEGMAP_CLASSES 21
+#define CLASS_CAR      7
+#define CLASS_PERSON   15
 
 /**
  * @brief Max objects in display.
@@ -87,6 +96,7 @@ typedef struct
   CairoOverlayState overlay_state;
   guint num_detections;
   DetectedObject detected_objects[MAX_OBJECT_DETECTION];
+  gfloat segmap[SEGMAP_HEIGHT][SEGMAP_WIDTH][SEGMAP_CLASSES];
   GstElement *appsink;
   GstElement *tensor_res;
   clock_t prev_update_time;
@@ -99,9 +109,11 @@ gboolean init_test(int argc, char ** argv);
 gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, const gchar *labels_file, const gchar *tflite_model, const gchar *tflite_box_priors_file);
 void free_app_data (void);
 void handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data);
+void handle_segmap_sample (GstElement * element, GstBuffer * buffer, gpointer user_data);
 GstFlowReturn new_preroll_cb (GstElement * element, gpointer user_data);
 GstFlowReturn new_sample_cb (GstElement * element, gpointer user_data);
 void set_window_title (const gchar * name, const gchar * title);
 void prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data);
-void draw_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data);
+void draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data);
+void draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data);
 void bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data);

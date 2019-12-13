@@ -168,7 +168,7 @@ parse_qos_message (GstMessage * message)
 }
 
 /**
- * @brief Callback for tensor sink signal.
+ * @brief Callback for handling a sample containing boundary-boxes stored as GstMeta-based ROIs.
  */
 void
 handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
@@ -220,6 +220,31 @@ handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
     g_app.fps = 0.0;
   g_app.prev_update_time = now;
   g_mutex_unlock (&g_app.mutex);
+}
+
+/**
+ * @brief Callback for handling a segmentation-mapped sample, which consists of one frame per class.
+ */
+void
+handle_segmap_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
+{
+  guint y, x, c;
+  GstMemory *in_mem;
+  GstMapInfo in_info;
+  gfloat *segmap;
+  GST_LOG_OBJECT(element, "called handle_segmap_sample");
+  in_mem = gst_buffer_peek_memory (buffer, 0);
+  g_assert (gst_memory_map (in_mem, &in_info, GST_MAP_READ));
+  segmap = (gfloat *)in_info.data;
+  for(y = 0; y < SEGMAP_HEIGHT; y++)
+    for(x = 0; x < SEGMAP_WIDTH; x++)
+      for(c = 0; c < SEGMAP_CLASSES; c++)
+      {
+        guint32 yi = y * SEGMAP_WIDTH * SEGMAP_CLASSES,
+                xi = x * SEGMAP_CLASSES;
+        g_app.segmap[y][x][c] = segmap[yi + xi + c];
+      }
+  gst_memory_unmap (in_mem, &in_info);
 }
 
 /**
@@ -284,7 +309,7 @@ prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data)
 }
 
 /**
- * @brief Callback to draw the overlay.
+ * @brief Callback to draw an overlay of boundary-boxes.
  */
 void
 draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
@@ -294,7 +319,7 @@ draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint
   guint drawed = 0;
   guint i;
   char str[32];
-  GST_LOG_OBJECT(overlay, "called draw_overlay_cb");
+  GST_LOG_OBJECT(overlay, "called draw_bb_overlay_cb");
   g_return_if_fail (state->valid);
   g_return_if_fail (g_app.running);
   g_mutex_lock (&g_app.mutex);
@@ -324,7 +349,7 @@ draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint
     if(x < 0 || y < 0 || (x+width+1) > VIDEO_WIDTH || (y+height+1) > VIDEO_HEIGHT)
       continue;
     /* draw rectangle */
-    GST_LOG_OBJECT(overlay, "draw_overlay_cb: drawing rectangle");
+    GST_LOG_OBJECT(overlay, "draw_bb_overlay_cb: drawing rectangle");
     cairo_rectangle (cr, x, y, width, height);
     cairo_set_source_rgb (cr, 1, 0, 0);
     cairo_set_line_width (cr, 1.5);
@@ -342,6 +367,68 @@ draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint
     if (++drawed >= MAX_OBJECT_DETECTION) // max objects drawed
       break;
   }
+  g_mutex_unlock (&g_app.mutex);
+}
+
+/**
+ * @brief Callback to draw an overlay of segmentation maps.
+ */
+void
+draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
+{
+  CairoOverlayState *state = &g_app.overlay_state;
+  cairo_surface_t *mask = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, VIDEO_WIDTH, VIDEO_HEIGHT);
+  guint y, x, c;
+  guint stride;
+  char str[32];
+  guchar *current_row;
+  GST_LOG_OBJECT(overlay, "called draw_segmap_overlay_cb");
+  g_return_if_fail (state->valid);
+  g_return_if_fail (g_app.running);
+  g_mutex_lock (&g_app.mutex);
+  /* set font props */
+  cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+      CAIRO_FONT_WEIGHT_BOLD);
+  cairo_set_font_size (cr, 20.0);
+  /* draw FPS */
+  snprintf(str, 32, "FPS=%.2f", g_app.fps);
+  cairo_move_to (cr, 50, 50);
+  cairo_text_path (cr, str);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_fill_preserve (cr);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_set_line_width (cr, .3);
+  cairo_stroke (cr);
+  cairo_fill_preserve (cr);
+  cairo_surface_flush(mask);
+  current_row = cairo_image_surface_get_data(mask);
+  stride = cairo_image_surface_get_stride(mask);
+  for(y = 0; y < SEGMAP_HEIGHT; y++)
+  {
+    uint32_t *row = (void *)current_row;
+    for(x = 0; x < SEGMAP_WIDTH; x++)
+    {
+      uint8_t max_index;
+      for(c = 0; c < SEGMAP_CLASSES; c++)
+      {
+        if(c == 0)
+          max_index = 0;
+        else
+        {
+          if(g_app.segmap[y][x][c] > g_app.segmap[y][x][max_index])
+            max_index = c;
+        }
+      }
+      uint32_t r = 255;
+      uint32_t g = 255;
+      uint32_t b = 255;
+      uint32_t a = (max_index == CLASS_PERSON)? 128 : 0;
+      row[x] = (a << 24) | (r << 16) | (g << 8) | b;
+    }
+    current_row += stride;
+  }
+  cairo_surface_mark_dirty(mask);
+  cairo_mask_surface(cr, mask, 0.0, 0.0);
   g_mutex_unlock (&g_app.mutex);
 }
 

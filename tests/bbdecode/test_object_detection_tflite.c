@@ -78,7 +78,7 @@ main (int argc, char ** argv)
   }
   /* cairo overlay */
   g_app.tensor_res = gst_bin_get_by_name (GST_BIN (g_app.pipeline), "tensor_res");
-  g_signal_connect (g_app.tensor_res, "draw", G_CALLBACK (draw_overlay_cb), NULL);
+  g_signal_connect (g_app.tensor_res, "draw", G_CALLBACK (draw_bb_overlay_cb), NULL);
   g_signal_connect (g_app.tensor_res, "caps-changed", G_CALLBACK (prepare_overlay_cb), NULL);
   /* start pipeline */
   if (g_app.frame_stepping)
