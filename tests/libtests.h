@@ -48,11 +48,12 @@
 //#define VIDEO_HEIGHT    768
 
 //XXX: Depends on model but must be defined here. Need to replace AppData with a handle-based framework.
-#define SEGMAP_WIDTH   513
-#define SEGMAP_HEIGHT  513
-#define SEGMAP_CLASSES 21
-#define CLASS_CAR      7
-#define CLASS_PERSON   15
+#define SEGMAP_WIDTH      513
+#define SEGMAP_HEIGHT     513
+#define SEGMAP_CLASSES    21
+#define CLASS_BACKGROUND  0
+#define CLASS_CAR         7
+#define CLASS_PERSON      15
 
 /**
  * @brief Max objects in display.

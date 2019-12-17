@@ -422,7 +422,7 @@ draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, g
       uint32_t r = 255;
       uint32_t g = 255;
       uint32_t b = 255;
-      uint32_t a = (max_index == CLASS_PERSON)? 128 : 0;
+      uint32_t a = (max_index == CLASS_BACKGROUND)? 0: 128;
       row[x] = (a << 24) | (r << 16) | (g << 8) | b;
     }
     current_row += stride;
