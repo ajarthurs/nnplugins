@@ -248,6 +248,30 @@ handle_segmap_sample (GstElement * element, GstBuffer * buffer, gpointer user_da
 }
 
 /**
+ * @brief Callback for handling a segmentation-mapped and arg-maxed sample, which consists of one frame of various classes.
+ */
+void
+handle_segmap_argmaxed_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
+{
+  guint y, x;
+  GstMemory *in_mem;
+  GstMapInfo in_info;
+  gint64 *segmap;
+  GST_LOG_OBJECT(element, "called handle_segmap_argmaxed_sample");
+  in_mem = gst_buffer_peek_memory (buffer, 0);
+  g_assert (gst_memory_map (in_mem, &in_info, GST_MAP_READ));
+  segmap = (gint64 *)in_info.data;
+  for(y = 0; y < SEGMAP_HEIGHT; y++)
+    for(x = 0; x < SEGMAP_WIDTH; x++)
+    {
+      guint64 yi = y * SEGMAP_WIDTH,
+              xi = x;
+        g_app.segmap[y][x][0] = (gfloat)segmap[yi + xi];
+    }
+  gst_memory_unmap (in_mem, &in_info);
+}
+
+/**
  * @brief Callback for new-preroll sink signal.
  */
 GstFlowReturn
@@ -440,6 +464,56 @@ draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, g
           max_index = c;
         row[x] = translate_segmap_index_to_argb(max_index);
       }
+    }
+    current_row += stride;
+  }
+  cairo_surface_mark_dirty(mask);
+  cairo_set_source_surface(cr, mask, 0, 0);
+  cairo_paint(cr);
+  cairo_surface_destroy(mask);
+  g_mutex_unlock (&g_app.mutex);
+}
+
+/**
+ * @brief Callback to draw an overlay of arg-maxed segmentation maps.
+ */
+void
+draw_segmap_argmaxed_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
+{
+  CairoOverlayState *state = &g_app.overlay_state;
+  cairo_surface_t *mask = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, VIDEO_WIDTH, VIDEO_HEIGHT);
+  guint y, x;
+  guint stride;
+  char str[32];
+  guchar *current_row;
+  GST_LOG_OBJECT(overlay, "called draw_segmap_overlay_cb");
+  g_return_if_fail (state->valid);
+  g_return_if_fail (g_app.running);
+  g_mutex_lock (&g_app.mutex);
+  /* set font props */
+  cairo_select_font_face (cr, "Sans", CAIRO_FONT_SLANT_NORMAL,
+      CAIRO_FONT_WEIGHT_BOLD);
+  cairo_set_font_size (cr, 20.0);
+  /* draw FPS */
+  snprintf(str, 32, "FPS=%.2f", g_app.fps);
+  cairo_move_to (cr, 50, 50);
+  cairo_text_path (cr, str);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_fill_preserve (cr);
+  cairo_set_source_rgb (cr, 1, 1, 1);
+  cairo_set_line_width (cr, .3);
+  cairo_stroke (cr);
+  cairo_fill_preserve (cr);
+  cairo_surface_flush(mask);
+  current_row = cairo_image_surface_get_data(mask);
+  stride = cairo_image_surface_get_stride(mask);
+  for(y = 0; y < SEGMAP_HEIGHT; y++)
+  {
+    uint32_t *row = (void *)current_row;
+    for(x = 0; x < SEGMAP_WIDTH; x++)
+    {
+      uint8_t max_index = g_app.segmap[y][x][0];
+      row[x] = translate_segmap_index_to_argb(max_index);
     }
     current_row += stride;
   }

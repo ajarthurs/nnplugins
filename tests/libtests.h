@@ -94,10 +94,10 @@ typedef struct
   gboolean frame_stepping; /**< whether or not to time the pipeline by model latency >**/
   TFLiteModelInfo tflite_info; /**< tflite model info */
   SampleCallback sample_handler; /**< callback that processes each sample/frame >**/
-  CairoOverlayState overlay_state;
-  guint num_detections;
-  DetectedObject detected_objects[MAX_OBJECT_DETECTION];
-  gfloat segmap[SEGMAP_HEIGHT][SEGMAP_WIDTH][SEGMAP_CLASSES];
+  CairoOverlayState overlay_state; /**< Cairo state >**/
+  guint num_detections; /**< actual number of detections in `detected_objects` >**/
+  DetectedObject detected_objects[MAX_OBJECT_DETECTION]; /**< BB-encoded detections >**/
+  gfloat segmap[SEGMAP_HEIGHT][SEGMAP_WIDTH][SEGMAP_CLASSES]; /**< segmentation map; depending on model, class-index-0 may be used to store an arg-maxed output >**/
   GstElement *appsink;
   GstElement *tensor_res;
   clock_t prev_update_time;
@@ -111,10 +111,12 @@ gboolean tflite_init_info (TFLiteModelInfo * tflite_info, const gchar * path, co
 void free_app_data (void);
 void handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data);
 void handle_segmap_sample (GstElement * element, GstBuffer * buffer, gpointer user_data);
+void handle_segmap_argmaxed_sample (GstElement * element, GstBuffer * buffer, gpointer user_data);
 GstFlowReturn new_preroll_cb (GstElement * element, gpointer user_data);
 GstFlowReturn new_sample_cb (GstElement * element, gpointer user_data);
 void set_window_title (const gchar * name, const gchar * title);
 void prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data);
 void draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data);
 void draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data);
+void draw_segmap_argmaxed_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data);
 void bus_message_cb (GstBus * bus, GstMessage * message, gpointer user_data);
