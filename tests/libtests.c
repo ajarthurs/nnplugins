@@ -381,6 +381,21 @@ draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint
 }
 
 /**
+ * @brief Return ARGB value for segmentation maps.
+ */
+static uint32_t
+translate_segmap_index_to_argb (uint8_t index)
+{
+  switch(index)
+  {
+    case CLASS_BACKGROUND: return 0;
+    case CLASS_CAR:        return 0x80800000;
+    case CLASS_PERSON:     return 0x80000080;
+    default:               return 0x80808080;
+  };
+}
+
+/**
  * @brief Callback to draw an overlay of segmentation maps.
  */
 void
@@ -418,27 +433,19 @@ draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, g
     uint32_t *row = (void *)current_row;
     for(x = 0; x < SEGMAP_WIDTH; x++)
     {
-      uint8_t max_index;
-      for(c = 0; c < SEGMAP_CLASSES; c++)
+      uint8_t max_index = 0;
+      for(c = 1; c < SEGMAP_CLASSES; c++)
       {
-        if(c == 0)
-          max_index = 0;
-        else
-        {
-          if(g_app.segmap[y][x][c] > g_app.segmap[y][x][max_index])
-            max_index = c;
-        }
+        if(g_app.segmap[y][x][c] > g_app.segmap[y][x][max_index])
+          max_index = c;
+        row[x] = translate_segmap_index_to_argb(max_index);
       }
-      uint32_t r = 255;
-      uint32_t g = 255;
-      uint32_t b = 255;
-      uint32_t a = (max_index == CLASS_BACKGROUND)? 0: 128;
-      row[x] = (a << 24) | (r << 16) | (g << 8) | b;
     }
     current_row += stride;
   }
   cairo_surface_mark_dirty(mask);
-  cairo_mask_surface(cr, mask, 0.0, 0.0);
+  cairo_set_source_surface(cr, mask, 0, 0);
+  cairo_paint(cr);
   cairo_surface_destroy(mask);
   g_mutex_unlock (&g_app.mutex);
 }
