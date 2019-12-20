@@ -255,6 +255,11 @@ new_preroll_cb (GstElement * element, gpointer user_data)
 {
   GstSample *sample;
   sample = gst_app_sink_pull_preroll((GstAppSink *)element);
+  if (sample == NULL)
+  {
+    GST_LOG_OBJECT(element, "preroll: no sample");
+    return GST_FLOW_OK;
+  }
   GST_LOG_OBJECT(element, "fetched sample from preroll");
   g_app.sample_handler(element, gst_sample_get_buffer(sample), user_data);
   gst_sample_unref(sample);
@@ -269,6 +274,11 @@ new_sample_cb (GstElement * element, gpointer user_data)
 {
   GstSample *sample;
   sample = gst_app_sink_pull_sample((GstAppSink *)element);
+  if (sample == NULL)
+  {
+    GST_LOG_OBJECT(element, "no sample");
+    return GST_FLOW_OK;
+  }
   GST_LOG_OBJECT(element, "fetched sample");
   g_app.sample_handler(element, gst_sample_get_buffer(sample), user_data);
   gst_sample_unref(sample);
@@ -429,6 +439,7 @@ draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, g
   }
   cairo_surface_mark_dirty(mask);
   cairo_mask_surface(cr, mask, 0.0, 0.0);
+  cairo_surface_destroy(mask);
   g_mutex_unlock (&g_app.mutex);
 }
 
