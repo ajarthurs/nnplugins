@@ -18,7 +18,8 @@ init_test(int argc, char ** argv)
   g_app.loop = NULL;
   g_app.bus = NULL;
   g_app.pipeline = NULL;
-  g_app.num_detections = 0;
+  g_app.num_detections[0] = 0;
+  g_app.num_detections[1] = 0;
   g_app.prev_update_time = clock();
   g_app.fps = 0.0;
   g_mutex_init (&g_app.mutex);
@@ -179,17 +180,19 @@ handle_bb_sample (GstElement * element, GstBuffer * buffer, gpointer user_data)
   GST_LOG_OBJECT(element, "called handle_bb_sample");
   GstVideoRegionOfInterestMeta *meta;
   g_mutex_lock (&g_app.mutex);
-  g_app.num_detections = 0;
+  g_app.num_detections[0] = 0;
+  g_app.num_detections[1] = 0;
   while((meta = (GstVideoRegionOfInterestMeta *)gst_buffer_iterate_meta(buffer, &state)) && i<MAX_OBJECT_DETECTION)
   {
     gdouble score;
     GstStructure *s = gst_video_region_of_interest_meta_get_param(meta, "detection");
     const gchar *label = gst_structure_get_string(s, "label_name");
-    guint label_id;
+    guint label_id, stream_id;
     gst_structure_get_uint(s, "label_id", &label_id);
+    gst_structure_get_uint(s, "stream_id", &stream_id);
     gst_structure_get_double(s, "confidence", &score);
-    DetectedObject *o = &g_app.detected_objects[g_app.num_detections];
-    g_app.num_detections++;
+    DetectedObject *o = &g_app.detected_objects[stream_id*MAX_OBJECT_DETECTION + g_app.num_detections[stream_id]];
+    g_app.num_detections[stream_id]++;
     gfloat wscale = (gfloat)VIDEO_WIDTH / UINT_MAX;
     gfloat hscale = (gfloat)VIDEO_HEIGHT / UINT_MAX;
     o->x = (guint)(meta->x * wscale);
@@ -338,7 +341,8 @@ set_window_title (const gchar * name, const gchar * title)
 void
 prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data)
 {
-  CairoOverlayState *state = &g_app.overlay_state;
+  uint8_t id = (uint8_t)user_data;
+  CairoOverlayState *state = &g_app.overlay_state[id];
   state->valid = gst_video_info_from_caps (&state->vinfo, caps);
 }
 
@@ -348,7 +352,8 @@ prepare_overlay_cb (GstElement * overlay, GstCaps * caps, gpointer user_data)
 void
 draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
 {
-  CairoOverlayState *state = &g_app.overlay_state;
+  uint8_t id = (uint8_t)user_data;
+  CairoOverlayState *state = &g_app.overlay_state[id];
   gfloat x, y, width, height;
   guint drawed = 0;
   guint i;
@@ -371,9 +376,9 @@ draw_bb_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint
   cairo_stroke (cr);
   cairo_fill_preserve (cr);
   /* iterate over detections */
-  for (i = 0; i < g_app.num_detections; i++)
+  for (i = 0; i < g_app.num_detections[id]; i++)
   {
-    DetectedObject *iter = &(g_app.detected_objects[i]);
+    DetectedObject *iter = &(g_app.detected_objects[id*MAX_OBJECT_DETECTION+i]);
     const gchar *label = g_app.tflite_info.labels[iter->class_id];
     x = iter->x;
     y = iter->y;
@@ -425,7 +430,7 @@ translate_segmap_index_to_argb (uint8_t index)
 void
 draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
 {
-  CairoOverlayState *state = &g_app.overlay_state;
+  CairoOverlayState *state = &g_app.overlay_state[0];
   cairo_surface_t *mask = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, VIDEO_WIDTH, VIDEO_HEIGHT);
   guint y, x, c;
   guint stride;
@@ -480,7 +485,7 @@ draw_segmap_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, g
 void
 draw_segmap_argmaxed_overlay_cb (GstElement * overlay, cairo_t * cr, guint64 timestamp, guint64 duration, gpointer user_data)
 {
-  CairoOverlayState *state = &g_app.overlay_state;
+  CairoOverlayState *state = &g_app.overlay_state[0];
   cairo_surface_t *mask = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, VIDEO_WIDTH, VIDEO_HEIGHT);
   guint y, x;
   guint stride;

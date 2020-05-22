@@ -38,6 +38,7 @@
 
 #define TEST_DATA_PATH "./tests/testdata"
 #define TEST_VIDEO_FILE "sample_1080p.mp4"
+#define TEST_VIDEO_FILE_B "traffic-1080p.mp4"
 #define TEST_COCO_LABELS_FILE "coco_labels_list.txt"
 
 #define VIDEO_WIDTH     513
@@ -94,12 +95,14 @@ typedef struct
   gboolean frame_stepping; /**< whether or not to time the pipeline by model latency >**/
   TFLiteModelInfo tflite_info; /**< tflite model info */
   SampleCallback sample_handler; /**< callback that processes each sample/frame >**/
-  CairoOverlayState overlay_state; /**< Cairo state >**/
-  guint num_detections; /**< actual number of detections in `detected_objects` >**/
-  DetectedObject detected_objects[MAX_OBJECT_DETECTION]; /**< BB-encoded detections >**/
+  CairoOverlayState overlay_state[2]; /**< Cairo state >**/
+  guint num_detections[2]; /**< actual number of detections in `detected_objects` >**/
+  DetectedObject detected_objects[2*MAX_OBJECT_DETECTION]; /**< BB-encoded detections >**/
   gfloat segmap[SEGMAP_HEIGHT][SEGMAP_WIDTH][SEGMAP_CLASSES]; /**< segmentation map; depending on model, class-index-0 may be used to store an arg-maxed output >**/
   GstElement *appsink;
   GstElement *tensor_res;
+  GstElement *tensor_res0;
+  GstElement *tensor_res1;
   clock_t prev_update_time;
   gdouble fps;
 } AppData;

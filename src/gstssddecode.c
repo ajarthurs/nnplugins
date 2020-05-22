@@ -39,6 +39,7 @@ enum
   PROP_LABELS,
   PROP_BOX_PRIORS,
   PROP_DEQUANT,
+  PROP_BATCH_SIZE,
   PROP_SILENT
 };
 
@@ -98,6 +99,10 @@ gst_ssddecode_class_init (GstSSDDecodeClass * klass)
   g_object_class_install_property (gobject_class, PROP_DEQUANT,
       g_param_spec_boolean ("dequant", "Dequant", "Dequantize input tensors (workaround for NNStreamer multi-tensor support; consider tensor_split, tensor_transform and tensor_merge instead) ?",
           FALSE, G_PARAM_READWRITE));
+
+  g_object_class_install_property (gobject_class, PROP_BATCH_SIZE,
+      g_param_spec_uint ("batch-size", "Batch-Size", "Frames per batch ?",
+          1, 1024, 1, G_PARAM_READWRITE));
 
   g_object_class_install_property (gobject_class, PROP_SILENT,
       g_param_spec_boolean ("silent", "Silent", "Produce verbose output ?",
@@ -172,6 +177,9 @@ gst_ssddecode_set_property (GObject * object, guint prop_id,
     case PROP_DEQUANT:
       filter->need_dequant = g_value_get_boolean (value);
       break;
+    case PROP_BATCH_SIZE:
+      filter->batch_size = g_value_get_uint (value);
+      break;
     case PROP_SILENT:
       filter->silent = g_value_get_boolean (value);
       break;
@@ -196,6 +204,9 @@ gst_ssddecode_get_property (GObject * object, guint prop_id,
       break;
     case PROP_DEQUANT:
       g_value_set_boolean (value, filter->need_dequant);
+      break;
+    case PROP_BATCH_SIZE:
+      g_value_set_uint (value, filter->batch_size);
       break;
     case PROP_SILENT:
       g_value_set_boolean (value, filter->silent);
@@ -280,58 +291,59 @@ gst_ssddecode_process (GstSSDDecode *filter, GstBuffer *inbuf)
   gfloat *pboxes;
   gfloat *ppredictions;
   DetectedObject detections[DETECTION_MAX * LABEL_SIZE];
-  guint num_detections = 0, i, j;
+  guint num_detections = 0, b, i, j;
   /* Map boxes and predictions tensors from model */
   for (i=0; i<2; i++) {
     in_mem[i] = gst_buffer_peek_memory (inbuf, i);
     g_assert (gst_memory_map (in_mem[i], &in_info[i], GST_MAP_READ));
   }
-  if (filter->need_dequant) {
-    pboxes = boxes;
-    ppredictions = predictions;
-    for (i=0; i<DETECTION_MAX; i++)
-      for (j=0; j<BOX_SIZE; j++)
-        //boxes[i*BOX_SIZE+j] = (gfloat)(((gfloat)(in_info[0].data[i*BOX_SIZE+j])-187.0) * 0.08773017674684525);
-        boxes[i*BOX_SIZE+j] = (gfloat)(((gfloat)(in_info[0].data[i*BOX_SIZE+j])-180.0) * 0.0448576174609375);
-    for (i=0; i<DETECTION_MAX; i++)
-      for (j=0; j<LABEL_SIZE; j++)
-        //predictions[i*LABEL_SIZE+j] = (gfloat)(((gfloat)(in_info[1].data[i*LABEL_SIZE+j])-0.0) * 0.00390625);
-        predictions[i*LABEL_SIZE+j] = (gfloat)(((gfloat)(in_info[1].data[i*LABEL_SIZE+j])-128.0) / 128.0);
-  } else { // no dequant, read as-is
-    pboxes = (gfloat *)(in_info[0].data);
-    ppredictions = (gfloat *)(in_info[1].data);
+  for (b=0; b<filter->batch_size; b++) {
+    if (filter->need_dequant) {
+      pboxes = boxes;
+      ppredictions = predictions;
+      for (i=0; i<DETECTION_MAX; i++)
+        for (j=0; j<BOX_SIZE; j++)
+          boxes[i*BOX_SIZE+j] = (gfloat)(((gfloat)(in_info[0].data[b*DETECTION_MAX*BOX_SIZE+i*BOX_SIZE+j])-180.0) * 0.0448576174609375);
+      for (i=0; i<DETECTION_MAX; i++)
+        for (j=0; j<LABEL_SIZE; j++)
+          predictions[i*LABEL_SIZE+j] = (gfloat)(((gfloat)(in_info[1].data[b*DETECTION_MAX*LABEL_SIZE+i*LABEL_SIZE+j])-128.0) / 128.0);
+    } else { // no dequant, read as-is
+      pboxes = (gfloat *)(in_info[0].data[b*DETECTION_MAX*BOX_SIZE]);
+      ppredictions = (gfloat *)(in_info[1].data[b*DETECTION_MAX*LABEL_SIZE]);
+    }
+    /* Process boxes and predictions into an array of DetectedObjects */
+    sanity_check = get_detected_objects (filter->box_priors, filter->labels, ppredictions, pboxes, detections, &num_detections);
+    /* Request write-access to tensor buffer to add ROIs, which will be pushed out the tensor srcpad */
+    outbuf = gst_buffer_make_writable(inbuf);
+    if (!gst_buffer_is_writable(outbuf)) {
+      GST_ERROR_OBJECT (filter, "Failed to gain write-access to tensor buffer: %" GST_PTR_FORMAT, outbuf);
+      sanity_check = FALSE;
+    }
+    if(!sanity_check) return NULL;
+    /* Attach ROIs to the tensor buffer */
+    for(i=0; i<num_detections; i++) {
+      DetectedObject *d = &detections[i];
+      GstStructure *s = gst_structure_new("detection",
+        "confidence", G_TYPE_DOUBLE, d->score,
+        "label_id", G_TYPE_UINT, d->class_id,
+        "label_name", G_TYPE_STRING, d->class_label,
+        "stream_id", G_TYPE_UINT, b,
+        NULL /* terminator: do not remove */
+        );
+      GstVideoRegionOfInterestMeta *meta = gst_buffer_add_video_region_of_interest_meta(
+          outbuf,
+          d->class_label,
+          d->x,
+          d->y,
+          d->width,
+          d->height
+          );
+      gst_video_region_of_interest_meta_add_param(meta, s);
+    }
   }
-  /* Process boxes and predictions into an array of DetectedObjects */
-  sanity_check = get_detected_objects (filter->box_priors, filter->labels, ppredictions, pboxes, detections, &num_detections);
   /* Teardown tensor mapping */
   for (i=0; i<2; i++) {
     gst_memory_unmap (in_mem[i], &in_info[i]);
-  }
-  /* Request write-access to tensor buffer to add ROIs, which will be pushed out the tensor srcpad */
-  outbuf = gst_buffer_make_writable(inbuf);
-  if (!gst_buffer_is_writable(outbuf)) {
-    GST_ERROR_OBJECT (filter, "Failed to gain write-access to tensor buffer: %" GST_PTR_FORMAT, outbuf);
-    sanity_check = FALSE;
-  }
-  if(!sanity_check) return NULL;
-  /* Attach ROIs to the tensor buffer */
-  for(i=0; i<num_detections; i++) {
-    DetectedObject *d = &detections[i];
-    GstStructure *s = gst_structure_new("detection",
-      "confidence", G_TYPE_DOUBLE, d->score,
-      "label_id", G_TYPE_UINT, d->class_id,
-      "label_name", G_TYPE_STRING, d->class_label,
-      NULL /* terminator: do not remove */
-      );
-    GstVideoRegionOfInterestMeta *meta = gst_buffer_add_video_region_of_interest_meta(
-        outbuf,
-        d->class_label,
-        d->x,
-        d->y,
-        d->width,
-        d->height
-        );
-    gst_video_region_of_interest_meta_add_param(meta, s);
   }
   return outbuf;
 }

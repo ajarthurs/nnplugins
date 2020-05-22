@@ -38,9 +38,10 @@ struct _GstSSDDecode
   const gchar *labels[LABEL_SIZE];
   gboolean silent;
   gboolean need_dequant;
+  guint batch_size;
 };
 
-struct _GstSSDDecodeClass 
+struct _GstSSDDecodeClass
 {
   GstElementClass parent_class;
 };
